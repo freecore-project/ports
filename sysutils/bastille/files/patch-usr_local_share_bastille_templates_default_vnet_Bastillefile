@@ -1,0 +1,11 @@
+--- usr/local/share/bastille/templates/default/vnet/Bastillefile.orig	2026-02-19 00:00:00 UTC
++++ usr/local/share/bastille/templates/default/vnet/Bastillefile
+@@ -7,7 +7,7 @@ ARG IFCONFIG
+ ARG IFCONFIG6
+ 
+ SYSRC ifconfig_${INTERFACE}_name="${VNET}"
+-SYSRC ifconfig_${VNET}="${IFCONFIG}"
++SYSRC ifconfig_${VNET}="${IFCONFIG} -txcsum -txcsum6"
+ SYSRC ifconfig_${VNET}_descr="jail interface for ${EXT_INTERFACE}"
+ SYSRC ifconfig_${VNET}_ipv6="${IFCONFIG6}"
+ SYSRC defaultrouter="${GATEWAY}"

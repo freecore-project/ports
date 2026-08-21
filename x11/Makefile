@@ -303,12 +303,14 @@
     SUBDIR += nvidia-driver-390
     SUBDIR += nvidia-driver-470
     SUBDIR += nvidia-driver-devel
+    SUBDIR += nvidia-driver-headless
     SUBDIR += nvidia-kmod
     SUBDIR += nvidia-kmod-304
     SUBDIR += nvidia-kmod-340
     SUBDIR += nvidia-kmod-390
     SUBDIR += nvidia-kmod-470
     SUBDIR += nvidia-kmod-devel
+    SUBDIR += nvidia-kmod-headless
     SUBDIR += nvidia-settings
     SUBDIR += nvidia-xconfig
     SUBDIR += nwg-bar

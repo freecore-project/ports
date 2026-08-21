@@ -1,7 +1,6 @@
 PORTNAME=	podman
 DISTVERSIONPREFIX=	v
-DISTVERSION=	5.7.1
-PORTREVISION=	2
+DISTVERSION=	5.8.8
 CATEGORIES=	sysutils
 
 MAINTAINER=	dfr@FreeBSD.org
@@ -21,15 +20,15 @@ RUN_DEPENDS=	conmon:sysutils/conmon \
 		containers-common>=0:sysutils/containers-common \
 		ocijail:sysutils/ocijail
 
-USES=		gmake go:1.24+,no_targets pkgconfig python:build shebangfix
+# Go 1.26 is this release's go.mod floor; this tree's GO_DEFAULT is 1.24.
+USES=		gmake go:1.26+,no_targets pkgconfig python:build shebangfix
+USE_GITHUB=	yes
+GH_ACCOUNT=	containers
 USE_RC_SUBR=	podman podman_service
 
 SHEBANG_FILES=	${WRKSRC}/hack/markdown-preprocess
 MAKE_ARGS=	SHELL=${LOCALBASE}/bin/bash
-
-USE_GITHUB=	yes
-GH_ACCOUNT=	containers
-GH_PROJECT=	podman
+MAKE_ENV+=	GOTOOLCHAIN=local
 
 INSTALL_TARGET=	install install.completions
 

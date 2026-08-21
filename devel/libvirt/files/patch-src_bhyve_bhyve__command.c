@@ -21,7 +21,16 @@
                             virBufferCurrentContent(&buf));
  
      return 0;
-@@ -416,6 +423,7 @@
+@@ -396,6 +403,8 @@
+             virBufferAsprintf(&opt, ",maxq=%d", disk->queues);
+         if (disk->queue_size)
+             virBufferAsprintf(&opt, ",qsz=%d", disk->queue_size);
++        if (disk->blockio.logical_block_size)
++            virBufferAsprintf(&opt, ",sectsz=%d", disk->blockio.logical_block_size);
+ 
+         nvme_opts = virBufferContentAndReset(&opt);
+ 
+@@ -416,6 +425,7 @@
                             virCommand *cmd)
  {
      const char *disk_source;
@@ -29,7 +38,7 @@
  
      if (virDomainDiskTranslateSourcePool(disk) < 0)
          return -1;
-@@ -435,10 +443,18 @@
+@@ -435,10 +445,18 @@
  
      disk_source = virDomainDiskGetSource(disk);
  
@@ -51,7 +60,7 @@
  
      return 0;
  }
-@@ -512,9 +528,7 @@
+@@ -512,9 +530,7 @@
                              "%s", _("only single ISA controller is supported"));
               return -1;
          }
@@ -62,7 +71,7 @@
          break;
      case VIR_DOMAIN_CONTROLLER_TYPE_NVME:
          if (bhyveBuildNVMeControllerArgStr(def, controller, driver, cmd) < 0)
-@@ -905,7 +919,6 @@
+@@ -905,7 +921,6 @@
       * since it forces the guest to exit when it spins on a lock acquisition.
       */
      virCommandAddArg(cmd, "-H"); /* vmexit from guest on hlt */

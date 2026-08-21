@@ -1,0 +1,7 @@
+The native FreeBSD NVIDIA System Management Interface and Management Library,
+paired with the matching NVIDIA kernel modules. This headless subset installs
+no X server, OpenGL/EGL provider, libmap override, Linux compatibility library,
+service, driver-loading configuration, or jail device rule.
+
+This package enables explicit driver attachment and telemetry validation. It
+does not provide CUDA, NVENC, rendering, or a shared-jail acceleration contract.

@@ -1,0 +1,2 @@
+# Shared by the native headless userspace and its kernel-module slave port.
+NVIDIA_HEADLESS_VERSION=	580.178.04

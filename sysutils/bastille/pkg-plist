@@ -15,6 +15,7 @@ etc/rc.d/bastille
 %%DATADIR%%/edit.sh
 %%DATADIR%%/etcupdate.sh
 %%DATADIR%%/export.sh
+%%DATADIR%%/freecore-lifecycle-v3
 %%DATADIR%%/htop.sh
 %%DATADIR%%/import.sh
 %%DATADIR%%/jcp.sh

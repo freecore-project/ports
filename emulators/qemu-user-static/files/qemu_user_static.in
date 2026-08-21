@@ -14,6 +14,12 @@
 name=%%NAME%%
 rcvar=%%NAME%%_enable
 
+# binmiscctl(8) does not load the image activator itself: without
+# imgact_binmisc every "add" below fails and nothing is registered.
+# rc.subr loads required_modules only on start, so a host that keeps the
+# service disabled never loads the module.
+required_modules="imgact_binmisc"
+
 # read configuration and set defaults
 load_rc_config "$name"
 

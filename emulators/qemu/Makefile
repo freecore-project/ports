@@ -1,6 +1,6 @@
 PORTNAME=	qemu
 DISTVERSION=	10.2.0
-PORTREVISION=	1
+PORTREVISION=	2
 CATEGORIES=	emulators
 MASTER_SITES=	https://download.qemu.org/
 DIST_SUBDIR=	qemu/${PORTVERSION}
@@ -37,20 +37,22 @@ FLAVOR?=			${FLAVORS:[1]}
 default_CONFLICTS_INSTALL=	qemu-devel qemu-nox11 qemu-tools qemu-utils \
 				qemu6* qemu7*
 nox11_PKGNAMESUFFIX=		-nox11
-nox11_CONFLICTS_INSTALL=	qemu qemu-devel qemu6* qemu7* qemu-guest-agent
+nox11_CONFLICTS_INSTALL=	qemu qemu-devel qemu6* qemu7*
 nox11_COMMENT=			(without X11)
 tools_PKGNAMESUFFIX=		-tools
 tools_COMMENT=			(tools only)
 tools_CONFLICTS_INSTALL=	qemu qemu-devel qemu-nox11 qemu-utils qemu6* \
-				qemu70* qemu-guest-agent
+				qemu70*
 tools_DESCR=			${.CURDIR}/pkg-descr-tools
 tools_PLIST=			${.CURDIR}/pkg-plist-tools
 guestagent_PKGNAMESUFFIX=		-guest-agent
 guestagent_COMMENT=			(guest agent)
 guestagent_DESCR=		${.CURDIR}/pkg-descr-ga
 guestagent_PLIST=		${.CURDIR}/pkg-plist-ga
-guestagent_CONFLICTS_INSTALL=	qemu qemu-devel qemu-nox11 qemu-tools qemu-utils qemu6* \
-				qemu7* qemu-guest-agent
+# The guest-agent package is bin/qemu-ga and its rc script, nothing the
+# emulator flavors also install (see post-install), so it only conflicts
+# with packages that carry a qemu-ga of their own.
+guestagent_CONFLICTS_INSTALL=	qemu-devel qemu-utils qemu6* qemu7*
 
 USES=		cpe gmake gnome ninja perl5 pkgconfig python:build shebangfix tar:xz
 SHEBANG_FILES=	scripts/xml-preprocess.py
@@ -133,8 +135,8 @@ PORTDOCS=	.buildinfo _static/* about/* dbus-dbusindex.html devel/* docs \
 		search.html searchindex.js specs/* system/* tools/* user/*
 
 OPTIONS_DEFINE=			CAPSTONE CDROM_DMA CURL DEBUG DOCS GNUTLS GTK3 \
-				ISCSI JPEG OPENGL PNG SAMBA SASL STATIC_LINK \
-				STRIP USBREDIR VDE X11 X86_TARGETS
+				ISCSI JPEG NAS_TARGETS OPENGL PNG SAMBA SASL \
+				STATIC_LINK STRIP USBREDIR VDE X11 X86_TARGETS
 OPTIONS_DEFAULT=		CDROM_DMA CURL GNUTLS GTK3 JPEG NCURSES_DEFAULT \
 				OPENGL PNG SASL VDE X11
 OPTIONS_SINGLE=			NCURSES
@@ -144,9 +146,9 @@ OPTIONS_EXCLUDE:=		GTK3 OPENGL X11
 .endif
 .if ${FLAVOR:U} == tools || ${FLAVOR:U} == guestagent
 OPTIONS_EXCLUDE:=		CAPSTONE CDROM_DMA CURL DEBUG GNUTLS GTK3 ISCSI \
-				JPEG NCURSES NCURSES_BASE NCURSES_DEFAULT \
-				NCURSES_PORT OPENGL PNG SAMBA SASL STATIC_LINK \
-				USBREDIR VDE X11 X86_TARGETS
+				JPEG NAS_TARGETS NCURSES NCURSES_BASE \
+				NCURSES_DEFAULT NCURSES_PORT OPENGL PNG SAMBA \
+				SASL STATIC_LINK USBREDIR VDE X11 X86_TARGETS
 .endif
 OPTIONS_SUB=			yes
 CAPSTONE_DESC=			Disassembly framework support
@@ -164,6 +166,9 @@ STATIC_LINK_DESC=		Statically link the executables
 USBREDIR_DESC=			usb device network redirection (experimental!)
 VDE_DESC=			vde dependency (for vde networking)
 X86_TARGETS_DESC=		Build only x86 system targets
+NAS_TARGETS_DESC=		Build only the aarch64 and riscv64 system targets (FreeCORE)
+NAS_TARGETS_PREVENTS=		X86_TARGETS
+NAS_TARGETS_PREVENTS_MSG=	NAS_TARGETS and X86_TARGETS select different target lists
 CAPSTONE_LIB_DEPENDS=		libcapstone.so:devel/capstone
 CAPSTONE_CONFIGURE_ON=		--enable-capstone \
 				--extra-cflags=-I${LOCALBASE}/include/capstone
@@ -220,6 +225,12 @@ X86_TARGETS_USES_OFF=		xorg
 X86_TARGETS_USE_OFF=		XORG=pixman,x11
 X86_TARGETS_CONFIGURE_ON=	--target-list='i386-softmmu i386-bsd-user x86_64-softmmu x86_64-bsd-user'
 .endif
+.if ${FLAVOR:U} == nox11
+# The full target list must not grow an X11 dependency on the flavor whose
+# point is to have none: pixman is all the emulators need once SDL, GTK and
+# OpenGL are excluded.
+X86_TARGETS_USE_OFF=		XORG=pixman
+.endif
 
 .include <bsd.port.options.mk>
 
@@ -247,15 +258,33 @@ USE_GCC=	yes
 CONFIGURE_ARGS+=	--disable-bsd-user
 MAKE_ARGS+=	ARCH=${ARCH:C/powerpc64.*/ppc64/}
 PLIST_SUB+=	BSDUSER="@comment "
+.elif ${PORT_OPTIONS:MNAS_TARGETS}
+# bsd-user is emulators/qemu-user-static's job on FreeCORE.
+CONFIGURE_ARGS+=	--disable-bsd-user
+PLIST_SUB+=	BSDUSER="@comment "
 .else
 PLIST_SUB+=	BSDUSER=""
+.endif
+
+.if ${PORT_OPTIONS:MNAS_TARGETS}
+# FreeCORE ships the emulated guest lane only: an aarch64 and a riscv64
+# system emulator.  amd64 guests are bhyve's job, so no x86 targets, and
+# nothing on this list uses libdw or lzo, so the wide-target dependencies
+# go with the targets.  Firmware, descriptors and dtbs are installed by
+# qemu regardless of the target list, so the plist only loses binaries.
+X86_TARGETS_LIB_DEPENDS_OFF=
+CONFIGURE_ARGS+=	--target-list=aarch64-softmmu,riscv64-softmmu \
+			--disable-libdw --disable-lzo
+PLIST_SUB+=	NAS_OTHER="@comment " NAS_I386="@comment "
+.else
+PLIST_SUB+=	NAS_OTHER="" NAS_I386=""
 .endif
 
 PLIST_SUB+=	LINUXBOOT_DMA=""
 .endif
 
 post-patch:
-.if ${FLAVOR:U} == tools
+.if ${FLAVOR:U} == tools || ${FLAVOR:U} == guestagent
 	@${REINPLACE_CMD} -e '/keymaps/d' ${WRKSRC}/pc-bios/meson.build
 .endif
 
@@ -275,6 +304,16 @@ post-install:
 	${INSTALL_SCRIPT} ${FILESDIR}/qemu-ifdown.sample ${STAGEDIR}${PREFIX}/etc
 .endif
 	@${STRIP_CMD} ${STAGEDIR}${PREFIX}/bin/qemu-*
+.if ${FLAVOR:U} == guestagent
+# The agent package must be installable next to the emulator package: drop
+# everything the guestagent build stages that pkg-plist also owns.
+	@${RM} -r ${STAGEDIR}${DATADIR}
+	@${RM} ${STAGEDIR}${PREFIX}/include/qemu-plugin.h
+	@${RM} ${STAGEDIR}${PREFIX}/share/man/man1/qemu.1 \
+		${STAGEDIR}${PREFIX}/share/man/man7/qemu-block-drivers.7 \
+		${STAGEDIR}${PREFIX}/share/man/man7/qemu-cpu-models.7 \
+		${STAGEDIR}${PREFIX}/share/man/man7/qemu-qmp-ref.7
+.endif
 
 post-install-DOCS-on:
 	@(cd ${WRKSRC} && ${COPYTREE_SHARE} docs ${STAGEDIR}${DOCSDIR}/)

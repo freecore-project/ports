@@ -1,6 +1,6 @@
 PORTNAME=	libvirt
 DISTVERSION=	11.10.0
-PORTREVISION=	3
+PORTREVISION=	5
 CATEGORIES=	devel
 MASTER_SITES=	http://libvirt.org/sources/ \
 		ftp://libvirt.org/libvirt/
@@ -45,8 +45,10 @@ OPTIONS_SUB=	yes
 BHYVE_MESON_ENABLED=	driver_bhyve
 
 QEMU_MESON_ENABLED=	driver_qemu
+# The default flavor of emulators/qemu is the X11 build; FreeCORE ships the
+# nox11 package and the two would conflict.
 QEMU_RUN_DEPENDS=	dmidecode:sysutils/dmidecode \
-			qemu-io:emulators/qemu
+			qemu-io:emulators/qemu@nox11
 
 NLS_USES=	gettext
 NLS_MESON_ENABLED=	nls

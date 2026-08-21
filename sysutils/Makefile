@@ -488,9 +488,11 @@
     SUBDIR += graffer
     SUBDIR += graveman
     SUBDIR += graylog
+    SUBDIR += grub2
     SUBDIR += grub2-bhyve
     SUBDIR += grub2-efi
     SUBDIR += grub2-pcbsd
+    SUBDIR += grub2-x86_64-efi
     SUBDIR += gsh
     SUBDIR += gsmartcontrol
     SUBDIR += gstat-rs

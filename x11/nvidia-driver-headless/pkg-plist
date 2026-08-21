@@ -1,0 +1,6 @@
+bin/nvidia-smi
+lib/libnvidia-ml.so
+lib/libnvidia-ml.so.1
+share/man/man1/nvidia-smi.1.gz
+%%DATADIR%%/license.txt
+%%DATADIR%%/README.md
