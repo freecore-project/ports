@@ -1,6 +1,6 @@
 PORTNAME=	collectd
 DISTVERSION=	5.12.0
-PORTREVISION=	27
+PORTREVISION=	28
 CATEGORIES=	net-mgmt
 MASTER_SITES=	https://storage.googleapis.com/collectd-tarballs/
 PKGNAMESUFFIX=	5
@@ -351,6 +351,7 @@ post-patch:
 		-e 's;/opt/collectd/lib;${PREFIX}/lib;' \
 		${WRKSRC}/contrib/collection.conf
 	@${SH} ${FILESDIR}/freecore-check-custom-types.sh ${WRKSRC}
+	@${SH} ${FILESDIR}/freecore-check-reporting-providers.sh ${WRKSRC}
 
 post-install:
 	${MKDIR} ${STAGEDIR}/var/db/collectd

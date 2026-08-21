@@ -1,7 +1,7 @@
 PORTNAME=			${SAMBA4_BASENAME}424
 PORTVERSION=			${SAMBA4_VERSION}
-# The vfs_noacl source changed under the same version; the
-# revision makes poudriere rebuild instead of keeping the cached package
+# The source checkout changed under the same version; the revision makes
+# poudriere rebuild instead of keeping the cached package.
 PORTREVISION=			1
 PORTEPOCH=			1
 CATEGORIES?=			net
