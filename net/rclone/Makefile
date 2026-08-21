@@ -1,7 +1,7 @@
 PORTNAME=	rclone
 DISTVERSIONPREFIX=	v
-DISTVERSION=	1.75.0
-PORTREVISION=	3
+DISTVERSION=	1.75.2
+PORTREVISION=	1
 CATEGORIES=	net
 
 MAINTAINER=	tremere@cainites.net
@@ -15,10 +15,6 @@ LIB_DEPENDS=	libfuse.so:filesystems/fusefs-libs
 RUN_DEPENDS=	ca_root_nss>=0:security/ca_root_nss
 
 USES=		cpe go:1.26,modules
-USE_GITHUB=	nodefault
-GH_TUPLE=	golang:image:v0.45.0:image \
-		golang:text:v0.41.0:text
-
 GO_MODULE=	github.com/rclone/rclone
 
 GO_BUILDFLAGS=	-ldflags -s -tags cmount
@@ -26,12 +22,6 @@ GO_BUILDFLAGS=	-ldflags -s -tags cmount
 PLIST_FILES=	bin/rclone \
 		bin/rclonefs \
 		share/man/man1/rclone.1.gz
-
-pre-patch:
-	${RM} -r ${WRKSRC}/vendor/golang.org/x/image \
-		${WRKSRC}/vendor/golang.org/x/text
-	${LN} -s ${WRKDIR}/image-* ${WRKSRC}/vendor/golang.org/x/image
-	${LN} -s ${WRKDIR}/text-* ${WRKSRC}/vendor/golang.org/x/text
 
 post-install:
 	${INSTALL_MAN} ${WRKSRC}/rclone.1 ${STAGEDIR}${PREFIX}/share/man/man1

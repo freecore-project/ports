@@ -1,11 +1,39 @@
---- pyproject.toml.orig	2026-07-23 01:52:21 UTC
+--- pyproject.toml.orig
 +++ pyproject.toml
-@@ -5,7 +5,7 @@ requires = [
-     # Next step should be >= 77.0 for PEP 639 support
-     # Don't bump too early to give distributors time to update
-     # their setuptools version.
--    "setuptools >= 67.0",
+@@ -1,19 +1,15 @@
+ [build-system]
+ requires = [
+     "pkgconfig",
+-    # setuptools >= 77.0 required for PEP 639 SPDX license metadata
+-    # (it also covers the >= 67.0 floor needed for Python 3.12+ support).
+-    "setuptools >= 77.0",
++    # FreeBSD/FreeCORE: the ports tree's setuptools predates PEP 639; the
++    # license metadata below is kept in the pre-77 form (as in 3.14.3).
 +    "setuptools >= 61.0",
  ]
  build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name        = "aiohttp"
+-license     = "Apache-2.0 AND MIT"
+-license-files = [
+-  "LICENSE.txt",
+-  "vendor/llhttp/LICENSE",
+-]
++license     = {text = "Apache-2.0 AND MIT"}
+ description = "Async http client/server framework (asyncio)"
+ readme      = "README.rst"
+ classifiers = [
+@@ -71,6 +67,12 @@
+ "GitHub: issues"     = "https://github.com/aio-libs/aiohttp/issues"
+ "GitHub: repo"       = "https://github.com/aio-libs/aiohttp"
+ 
++[tool.setuptools]
++license-files = [
++  "LICENSE.txt",
++  "vendor/llhttp/LICENSE",
++]
++
+ [tool.setuptools.dynamic]
+ version = {attr = "aiohttp.__version__"}
  
