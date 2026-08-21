@@ -1,0 +1,14 @@
+[
+{ type: install
+  message: <<EOM
+The headless NVIDIA modules are installed but are not enabled automatically.
+For a disposable hardware test, explicitly load nvidia (not nvidia-modeset or
+nvidia-drm), then run nvidia-smi -q -x from the matching headless package.
+
+FreeCORE administrators can persist this opt-in through an RC kld_list tunable,
+preserving existing entries. Do not use a LOADER nvidia_load entry alone.
+Read /usr/local/share/nvidia-headless/README.md for the acceptance boundaries.
+No CUDA, NVENC/transcoding or shared-jail rendering support is implied.
+EOM
+}
+]
