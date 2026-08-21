@@ -1,21 +1,11 @@
 PORTNAME=	python
 DISTVERSION=	${PYTHON_DISTVERSION}
-PORTREVISION=	4
+PORTREVISION=	1
 CATEGORIES=	lang python
 MASTER_SITES=	PYTHON/ftp/python/${DISTVERSION:C/[a-z].*//}
 PKGNAMESUFFIX=	${PYTHON_SUFFIX}
 DISTNAME=	Python-${DISTVERSION}
 DIST_SUBDIR=	python
-
-PATCH_SITES=	https://github.com/python/cpython/commit/
-PATCHFILES=	d849cf5fec76947865370a41baba8934c581cdb2.patch:-p1 \
-		9c9dda6625a2a90d2a06c657eee021d6be19842d.patch:-p1 \
-		14b1fdb0a94b96f86fc7b86671ea9582b8676628.patch:-p1 \
-		e417f05ad77a4c30ddc07f99e90fc0cef43e831a.patch:-p1 \
-		a76e4cd62dd68e7cbe86e37e6ed988495a646b66.patch:-p1 \
-		4ed11d3cd288e6b90196a15c5a825a45d318fe47.patch:-p1 \
-		4802b96a2cde58570c24c13ef3289490980961c5.patch:-p1 \
-		62700107418eb2cca3fc88da036a243ea975f172.patch:-p1
 
 MAINTAINER=	python@FreeBSD.org
 COMMENT=	Interpreted object-oriented programming language
@@ -23,7 +13,8 @@ WWW=		https://www.python.org/
 
 LICENSE=	PSFL
 
-LIB_DEPENDS=	libffi.so:devel/libffi
+LIB_DEPENDS=	libffi.so:devel/libffi \
+		libexpat.so:textproc/expat2
 
 USES=		compiler:c11 cpe ncurses pathfix pkgconfig \
 		python:${PYTHON_DISTVERSION:R},env readline shebangfix ssl tar:xz
@@ -37,7 +28,7 @@ SHEBANG_FILES+=	Lib/test/ziptestdata/exe_with_z64 \
 		Lib/test/ziptestdata/header.sh
 
 DISABLED_EXTENSIONS=	_sqlite3 _tkinter _gdbm
-CONFIGURE_ARGS+=	--enable-shared --without-ensurepip
+CONFIGURE_ARGS+=	--enable-shared --with-system-expat --without-ensurepip
 CONFIGURE_ENV+=		OPT="" # Null out OPT to respect user CFLAGS and remove optimizations
 
 INSTALL_TARGET=		altinstall					# Don't want cloberring of unprefixed files
@@ -84,7 +75,7 @@ LTO_CONFIGURE_ON=	--with-lto
 # Use CPPFLAGS over CFLAGS due to -I ordering, causing elementtree and pyexpat
 # to break in Python 2.7, or preprocessor complaints in Python >= 3.3
 # Upstream Issue: https://bugs.python.org/issue6299
-NLS_USES=		gettext
+NLS_USES=		gettext-runtime
 NLS_CPPFLAGS=		-I${LOCALBASE}/include
 NLS_LIBS=		-L${LOCALBASE}/lib -lintl
 NLS_CONFIGURE_ENV_OFF=	ac_cv_lib_intl_textdomain=no ac_cv_header_libintl_h=no

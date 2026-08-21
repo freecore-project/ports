@@ -1,12 +1,11 @@
 PORTNAME=	beautifulsoup
-PORTVERSION=	4.13.4
-PORTREVISION=	2
+PORTVERSION=	4.15.0
 CATEGORIES=	www python
 MASTER_SITES=	PYPI
 PKGNAMEPREFIX=	${PYTHON_PKGNAMEPREFIX}
 DISTNAME=	beautifulsoup4-${PORTVERSION}
 
-MAINTAINER=	wen@FreeBSD.org
+MAINTAINER=	michaelo@FreeBSD.org
 COMMENT=	HTML/XML Parser for Python
 WWW=		https://www.crummy.com/software/BeautifulSoup/
 
@@ -26,6 +25,9 @@ NO_ARCH=	yes
 
 PLIST_SUB=	BS_VER=${PORTVERSION}
 
+# The wheel and its dist-info carry the distribution's name (beautifulsoup4), not PORTNAME,
+# so the framework's ${PORTNAME}-based pep517 install and autoplist globs match nothing.
+# This port therefore builds and installs the wheel itself and ships a static plist.
 do-build:
 	@cd ${BUILD_WRKSRC} && ${SETENV} ${MAKE_ENV} ${PYTHON_CMD} -m build --wheel --no-isolation --outdir ${WRKDIR}
 

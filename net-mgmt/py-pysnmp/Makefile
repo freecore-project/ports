@@ -1,6 +1,6 @@
 PORTNAME=	pysnmp
 PORTVERSION=	4.4.9
-PORTREVISION=	3
+PORTREVISION=	4
 CATEGORIES=	net-mgmt python
 MASTER_SITES=	PYPI \
 		SF/pysnmp/pysnmp/${PORTVERSION}
@@ -13,6 +13,7 @@ WWW=		https://github.com/etingof/pysnmp
 LICENSE=	BSD2CLAUSE
 
 RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}pyasn1>=0.2.3:devel/py-pyasn1@${PY_FLAVOR} \
+		${PYTHON_PKGNAMEPREFIX}pyasyncore>=1.0.5:devel/py-pyasyncore@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}pycryptodomex>=0:security/py-pycryptodomex@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}pysmi>=0:net-mgmt/py-pysmi@${PY_FLAVOR}
 

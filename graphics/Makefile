@@ -345,6 +345,7 @@
     SUBDIR += gwenview
     SUBDIR += h3
     SUBDIR += halftone
+    SUBDIR += hdr_histogram
     SUBDIR += hdr_tools
     SUBDIR += heimer
     SUBDIR += hiptext

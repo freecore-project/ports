@@ -2,7 +2,7 @@ PORTNAME=			${SAMBA4_BASENAME}424
 PORTVERSION=			${SAMBA4_VERSION}
 # The source checkout changed under the same version; the revision makes
 # poudriere rebuild instead of keeping the cached package.
-PORTREVISION=			1
+PORTREVISION=			0
 PORTEPOCH=			1
 CATEGORIES?=			net
 # TrueNAS fork: source comes from /usr/nas_source/samba, not distfiles
@@ -29,7 +29,7 @@ SAMBA4_PORTNAME=		${SAMBA4_BASENAME}4
 # TrueNAS builds from the bundled /usr/nas_source/samba checkout.  Keep the
 # package version aligned with that checkout's VERSION file, not the upstream
 # distfile version from the FreeBSD ports tree this port was forked from.
-SAMBA4_VERSION=			4.24.5
+SAMBA4_VERSION=			4.24.7
 SAMBA4_DISTNAME=		${SAMBA4_BASENAME}-${SAMBA4_VERSION:S|.p|pre|:S|.r|rc|:S|.t|tp|:S|.a|alpha|}
 
 # TrueNAS fork: build from local source tree
@@ -185,7 +185,7 @@ BUILD_DEPENDS+=			${LOCALBASE}/lib/libldb.so:databases/ldb28 \
 
 ### Bundled libraries
 SAMBA4_BUNDLED_CMOCKA?=		no
-# TrueNAS 4.24: bundle talloc + tdb — the 4.24.5 floors (talloc 2.4.4,
+# TrueNAS 4.24: bundle talloc + tdb — the 4.24.7 floors (talloc 2.4.4,
 # tdb 1.4.15) exceed every port in this tree and nothing else in the
 # appliance set consumes them; same posture as tevent/ldb below.
 SAMBA4_BUNDLED_TALLOC?=		yes
@@ -512,10 +512,10 @@ CONFIGURE_ARGS+=		--bundled-libraries="${SAMBA4_BUNDLED_LIBS:Q:C|(\\\\ )+|,|g:S|
 # defaults these to private_library=False in lib/{ldb,tevent,pyldb}/wscript;
 # --private-libraries flips the wafsamba LIB_MUST_BE_PRIVATE check to True,
 # matching the 4.16 behaviour pkg-plist still assumes.
-# pyldb-util goes through pyembed_libname() which suffixes .cpython-<ver>
+# pyldb-util goes through pyembed_libname() which adds ${PYTHON_TAG}
 # (samba_python.py:149); LIB_MUST_BE_PRIVATE does a strict 'in' match, so the
-# libname listed here must include that suffix to match the SAMBA_LIBRARY call.
-CONFIGURE_ARGS+=		--private-libraries="talloc,tdb,ldb,tevent,pyldb-util.cpython-311,pytalloc-util.cpython-311"
+# names listed here must include the active Python ABI tag.
+CONFIGURE_ARGS+=		--private-libraries="talloc,tdb,ldb,tevent,pyldb-util${PYTHON_TAG},pytalloc-util${PYTHON_TAG}"
 .endif
 
 .if defined(SAMBA4_MODULES) && !empty(SAMBA4_MODULES)

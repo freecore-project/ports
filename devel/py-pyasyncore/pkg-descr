@@ -1,0 +1,3 @@
+This package contains the asyncore module as found in Python versions prior
+to 3.12. It allows existing software that imports asyncore to continue
+running while it is migrated to asyncio or another maintained interface.

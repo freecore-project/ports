@@ -1666,6 +1666,7 @@
     SUBDIR += menhir
     SUBDIR += mercurial
     SUBDIR += mergify
+    SUBDIR += merve
     SUBDIR += meson
     SUBDIR += meson-python
     SUBDIR += microsoft-gsl
@@ -5598,6 +5599,7 @@
     SUBDIR += py-pyaml-env
     SUBDIR += py-pyasn1
     SUBDIR += py-pyasn1-modules
+    SUBDIR += py-pyasyncore
     SUBDIR += py-pybind11
     SUBDIR += py-pybix
     SUBDIR += py-pybreaker
