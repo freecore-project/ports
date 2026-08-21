@@ -78,6 +78,7 @@ libexec/git-core/git-fmt-merge-msg
 libexec/git-core/git-for-each-ref
 libexec/git-core/git-for-each-repo
 libexec/git-core/git-format-patch
+libexec/git-core/git-format-rev
 libexec/git-core/git-fsck
 libexec/git-core/git-fsck-objects
 libexec/git-core/git-fsmonitor--daemon
@@ -86,6 +87,7 @@ libexec/git-core/git-get-tar-commit-id
 libexec/git-core/git-grep
 libexec/git-core/git-hash-object
 libexec/git-core/git-help
+libexec/git-core/git-history
 libexec/git-core/git-hook
 libexec/git-core/git-http-backend
 %%CURL%%libexec/git-core/git-http-fetch
@@ -186,6 +188,7 @@ libexec/git-core/git-update-ref
 libexec/git-core/git-update-server-info
 libexec/git-core/git-upload-archive
 libexec/git-core/git-upload-pack
+libexec/git-core/git-url-parse
 libexec/git-core/git-var
 libexec/git-core/git-verify-commit
 libexec/git-core/git-verify-pack
@@ -272,6 +275,7 @@ share/man/man1/git-fmt-merge-msg.1.gz
 share/man/man1/git-for-each-ref.1.gz
 share/man/man1/git-for-each-repo.1.gz
 share/man/man1/git-format-patch.1.gz
+share/man/man1/git-format-rev.1.gz
 share/man/man1/git-fsck-objects.1.gz
 share/man/man1/git-fsck.1.gz
 share/man/man1/git-fsmonitor--daemon.1.gz
@@ -280,6 +284,7 @@ share/man/man1/git-get-tar-commit-id.1.gz
 share/man/man1/git-grep.1.gz
 share/man/man1/git-hash-object.1.gz
 share/man/man1/git-help.1.gz
+share/man/man1/git-history.1.gz
 share/man/man1/git-hook.1.gz
 share/man/man1/git-http-backend.1.gz
 share/man/man1/git-http-fetch.1.gz
@@ -370,6 +375,7 @@ share/man/man1/git-update-ref.1.gz
 share/man/man1/git-update-server-info.1.gz
 share/man/man1/git-upload-archive.1.gz
 share/man/man1/git-upload-pack.1.gz
+share/man/man1/git-url-parse.1.gz
 share/man/man1/git-var.1.gz
 share/man/man1/git-verify-commit.1.gz
 share/man/man1/git-verify-pack.1.gz
@@ -401,6 +407,7 @@ share/man/man5/gitprotocol-pack.5.gz
 share/man/man5/gitprotocol-v2.5.gz
 share/man/man5/gitrepository-layout.5.gz
 share/man/man5/gitweb.conf.5.gz
+share/man/man7/gitdatamodel.7.gz
 share/man/man7/gitcli.7.gz
 share/man/man7/gitcore-tutorial.7.gz
 share/man/man7/gitcredentials.7.gz
@@ -922,10 +929,21 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.49.1.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.50.0.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.50.1.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.50.2.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.51.0.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.51.1.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.51.2.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.51.3.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.52.0.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.52.1.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.53.0.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.53.1.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.54.0.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.54.1.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.55.0.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.55.1.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.56.0.adoc
+%%DOCS%%%%DOCSDIR%%/RelNotes/2.56.1.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.5.0.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.5.1.adoc
 %%DOCS%%%%DOCSDIR%%/RelNotes/2.5.2.adoc
@@ -982,6 +1000,7 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/cmds-userinterfaces.adoc
 %%DOCS%%%%DOCSDIR%%/config.adoc
 %%DOCS%%%%DOCSDIR%%/date-formats.adoc
+%%DOCS%%%%DOCSDIR%%/diff-algorithm-option.adoc
 %%DOCS%%%%DOCSDIR%%/diff-context-options.adoc
 %%DOCS%%%%DOCSDIR%%/diff-format.adoc
 %%DOCS%%%%DOCSDIR%%/diff-generate-patch.adoc
@@ -991,6 +1010,8 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/everyday.html
 %%DOCS%%%%DOCSDIR%%/fetch-options.adoc
 %%DOCS%%%%DOCSDIR%%/for-each-ref-options.adoc
+%%DOCS%%%%DOCSDIR%%/format-patch-caveats.adoc
+%%DOCS%%%%DOCSDIR%%/format-patch-end-of-commit-message.adoc
 %%DOCS%%%%DOCSDIR%%/fsck-msgids.adoc
 %%DOCS%%%%DOCSDIR%%/git-add.adoc
 %%DOCS%%%%DOCSDIR%%/git-add.html
@@ -1104,6 +1125,8 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/git-for-each-repo.html
 %%DOCS%%%%DOCSDIR%%/git-format-patch.adoc
 %%DOCS%%%%DOCSDIR%%/git-format-patch.html
+%%DOCS%%%%DOCSDIR%%/git-format-rev.adoc
+%%DOCS%%%%DOCSDIR%%/git-format-rev.html
 %%DOCS%%%%DOCSDIR%%/git-fsck-objects.adoc
 %%DOCS%%%%DOCSDIR%%/git-fsck-objects.html
 %%DOCS%%%%DOCSDIR%%/git-fsmonitor--daemon.adoc
@@ -1122,6 +1145,8 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/git-hash-object.html
 %%DOCS%%%%DOCSDIR%%/git-help.adoc
 %%DOCS%%%%DOCSDIR%%/git-help.html
+%%DOCS%%%%DOCSDIR%%/git-history.adoc
+%%DOCS%%%%DOCSDIR%%/git-history.html
 %%DOCS%%%%DOCSDIR%%/git-hook.adoc
 %%DOCS%%%%DOCSDIR%%/git-hook.html
 %%DOCS%%%%DOCSDIR%%/git-http-backend.adoc
@@ -1308,6 +1333,8 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/git-upload-archive.html
 %%DOCS%%%%DOCSDIR%%/git-upload-pack.adoc
 %%DOCS%%%%DOCSDIR%%/git-upload-pack.html
+%%DOCS%%%%DOCSDIR%%/git-url-parse.adoc
+%%DOCS%%%%DOCSDIR%%/git-url-parse.html
 %%DOCS%%%%DOCSDIR%%/git-var.adoc
 %%DOCS%%%%DOCSDIR%%/git-var.html
 %%DOCS%%%%DOCSDIR%%/git-verify-commit.adoc
@@ -1338,6 +1365,8 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/gitcredentials.html
 %%DOCS%%%%DOCSDIR%%/gitcvs-migration.adoc
 %%DOCS%%%%DOCSDIR%%/gitcvs-migration.html
+%%DOCS%%%%DOCSDIR%%/gitdatamodel.adoc
+%%DOCS%%%%DOCSDIR%%/gitdatamodel.html
 %%DOCS%%%%DOCSDIR%%/gitdiffcore.adoc
 %%DOCS%%%%DOCSDIR%%/gitdiffcore.html
 %%DOCS%%%%DOCSDIR%%/giteveryday.adoc
@@ -1497,6 +1526,8 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/technical/pack-heuristics.html
 %%DOCS%%%%DOCSDIR%%/technical/packfile-uri.adoc
 %%DOCS%%%%DOCSDIR%%/technical/packfile-uri.html
+%%DOCS%%%%DOCSDIR%%/technical/paint-down-to-common.adoc
+%%DOCS%%%%DOCSDIR%%/technical/paint-down-to-common.html
 %%DOCS%%%%DOCSDIR%%/technical/parallel-checkout.adoc
 %%DOCS%%%%DOCSDIR%%/technical/parallel-checkout.html
 %%DOCS%%%%DOCSDIR%%/technical/partial-clone.adoc
@@ -1525,6 +1556,8 @@ share/man/man7/gitworkflows.7.gz
 %%DOCS%%%%DOCSDIR%%/technical/sparse-index.html
 %%DOCS%%%%DOCSDIR%%/technical/trivial-merge.adoc
 %%DOCS%%%%DOCSDIR%%/technical/trivial-merge.html
+%%DOCS%%%%DOCSDIR%%/technical/unambiguous-types.adoc
+%%DOCS%%%%DOCSDIR%%/technical/unambiguous-types.html
 %%DOCS%%%%DOCSDIR%%/technical/unit-tests.adoc
 %%DOCS%%%%DOCSDIR%%/technical/unit-tests.html
 %%DOCS%%%%DOCSDIR%%/trace2-target-values.adoc
@@ -1540,33 +1573,9 @@ share/man/man7/gitworkflows.7.gz
 %%GITWEB%%%%EXAMPLESDIR%%/gitweb/static/gitweb.css
 %%GITWEB%%%%EXAMPLESDIR%%/gitweb/static/gitweb.js
 %%CONTRIB%%share/git-core/contrib/README
+%%CONTRIB%%share/git-core/contrib/Makefile
 %%CONTRIB%%share/git-core/contrib/buildsystems/CMakeLists.txt
 %%CONTRIB%%share/git-core/contrib/buildsystems/git-version.in
-%%CONTRIB%%share/git-core/contrib/coccinelle/README
-%%CONTRIB%%share/git-core/contrib/coccinelle/array.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/commit.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/config_fn_ctx.pending.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/equals-null.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/flex_alloc.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/free.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/git_config_number.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/hashmap.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/index-compatibility.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/meson.build
-%%CONTRIB%%share/git-core/contrib/coccinelle/object_id.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/preincr.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/qsort.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/refs.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/spatchcache
-%%CONTRIB%%share/git-core/contrib/coccinelle/strbuf.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/swap.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/tests/free.c
-%%CONTRIB%%share/git-core/contrib/coccinelle/tests/free.res
-%%CONTRIB%%share/git-core/contrib/coccinelle/the_repository.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/xcalloc.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/xopen.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/xstrdup_or_null.cocci
-%%CONTRIB%%share/git-core/contrib/coccinelle/xstrncmpz.cocci
 %%CONTRIB%%share/git-core/contrib/completion/git-completion.bash
 %%CONTRIB%%share/git-core/contrib/completion/git-completion.tcsh
 %%CONTRIB%%share/git-core/contrib/completion/git-completion.zsh
@@ -1576,7 +1585,6 @@ share/man/man7/gitworkflows.7.gz
 %%CONTRIB%%share/git-core/contrib/contacts/git-contacts
 %%CONTRIB%%share/git-core/contrib/contacts/git-contacts.adoc
 %%CONTRIB%%share/git-core/contrib/contacts/meson.build
-%%CONTRIB%%share/git-core/contrib/coverage-diff.sh
 %%CONTRIB%%share/git-core/contrib/credential/libsecret/Makefile
 %%CONTRIB%%share/git-core/contrib/credential/libsecret/git-credential-libsecret.c
 %%CONTRIB%%share/git-core/contrib/credential/libsecret/meson.build
@@ -1645,8 +1653,6 @@ share/man/man7/gitworkflows.7.gz
 %%CONTRIB%%share/git-core/contrib/subtree/t/Makefile
 %%CONTRIB%%share/git-core/contrib/subtree/t/t7900-subtree.sh
 %%CONTRIB%%share/git-core/contrib/subtree/todo
-%%CONTRIB%%share/git-core/contrib/update-unicode/README
-%%CONTRIB%%share/git-core/contrib/update-unicode/update_unicode.sh
 %%CONTRIB%%share/git-core/contrib/vscode/README.md
 %%CONTRIB%%share/git-core/contrib/vscode/init.sh
 share/git-core/templates/description
@@ -1665,6 +1671,7 @@ share/git-core/templates/hooks/push-to-checkout.sample
 share/git-core/templates/hooks/sendemail-validate.sample
 share/git-core/templates/hooks/update.sample
 share/git-core/templates/info/exclude
+%%NLS%%share/locale/af/LC_MESSAGES/git.mo
 %%NLS%%share/locale/bg/LC_MESSAGES/git.mo
 %%NLS%%share/locale/ca/LC_MESSAGES/git.mo
 %%NLS%%share/locale/de/LC_MESSAGES/git.mo
@@ -1677,6 +1684,7 @@ share/git-core/templates/info/exclude
 %%NLS%%share/locale/it/LC_MESSAGES/git.mo
 %%NLS%%share/locale/ko/LC_MESSAGES/git.mo
 %%NLS%%share/locale/pl/LC_MESSAGES/git.mo
+%%NLS%%share/locale/pt_BR/LC_MESSAGES/git.mo
 %%NLS%%share/locale/pt_PT/LC_MESSAGES/git.mo
 %%NLS%%share/locale/ru/LC_MESSAGES/git.mo
 %%NLS%%share/locale/sv/LC_MESSAGES/git.mo
