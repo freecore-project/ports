@@ -1,0 +1,5 @@
+TIMESTAMP = 1759129540
+SHA256 (go/databases_pgmetrics/pgmetrics-v1.18.0/v1.18.0.mod) = c4339a49085718dde619ecd1b6d9d5225c888f1bd094d34939d49ba109e32c24
+SIZE (go/databases_pgmetrics/pgmetrics-v1.18.0/v1.18.0.mod) = 1272
+SHA256 (go/databases_pgmetrics/pgmetrics-v1.18.0/v1.18.0.zip) = 56a4a0424cd75f9411d38c39ef4731127e1abd41dfaf36641c0878f0ff342ff3
+SIZE (go/databases_pgmetrics/pgmetrics-v1.18.0/v1.18.0.zip) = 86151

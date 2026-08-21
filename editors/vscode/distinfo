@@ -1,0 +1,7 @@
+TIMESTAMP = 1768111772
+SHA256 (vscode/vscode-node-modules-1.108.0.tar.gz) = 4c4128369a3596e204dc70c773965e5487e111f172dbc16b23d408245721be5b
+SIZE (vscode/vscode-node-modules-1.108.0.tar.gz) = 492416000
+SHA256 (vscode/vscode-marketplace-exts-1.108.0.tar.gz) = 71957acb750563a34eafe4da306ff6b994244a37916908fc30b0c8c0449ee9fe
+SIZE (vscode/vscode-marketplace-exts-1.108.0.tar.gz) = 1710432
+SHA256 (vscode/microsoft-vscode-1.108.0_GH0.tar.gz) = 62c649bf6bf6e99ca0face2c32b3fc3cf4e1abb11055677dd75d63c55c993cf7
+SIZE (vscode/microsoft-vscode-1.108.0_GH0.tar.gz) = 24264337
