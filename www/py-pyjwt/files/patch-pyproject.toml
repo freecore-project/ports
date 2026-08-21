@@ -1,6 +1,6 @@
---- pyproject.toml.orig	2026-01-30 19:59:19 UTC
+--- pyproject.toml.orig
 +++ pyproject.toml
-@@ -1,7 +1,7 @@ requires = [
+@@ -1,7 +1,7 @@
  [build-system]
  build-backend = "setuptools.build_meta"
  requires = [
@@ -8,8 +8,8 @@
 +    "setuptools>=61",
  ]
  
- [project]
-@@ -35,8 +35,8 @@ keywords = [
+ [dependency-groups]
+@@ -59,8 +59,8 @@
      "token",
      "web",
  ]

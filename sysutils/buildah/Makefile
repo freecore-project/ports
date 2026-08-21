@@ -1,7 +1,7 @@
 PORTNAME=	buildah
 DISTVERSIONPREFIX=	v
-DISTVERSION=	1.43.2
-PORTREVISION=	4
+DISTVERSION=	1.43.5
+PORTREVISION=	2
 CATEGORIES=	sysutils
 
 MAINTAINER=	dfr@FreeBSD.org
@@ -23,7 +23,7 @@ RUN_DEPENDS=	containernetworking-plugins>=0:net/containernetworking-plugins \
 USES=		gmake go:no_targets pkgconfig
 
 USE_GITHUB=	yes
-GH_ACCOUNT=	containers
+GH_ACCOUNT=	podman-container-tools
 GH_PROJECT=	buildah
 INSTALL_TARGET=	install install.completions
 

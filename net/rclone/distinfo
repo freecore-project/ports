@@ -1,9 +1,5 @@
-TIMESTAMP = 1786747929
-SHA256 (go/net_rclone/rclone-v1.75.0/v1.75.0.mod) = 5b30d29d92b883358512615d71e65313452e16bdde673ec251953082363eb125
-SIZE (go/net_rclone/rclone-v1.75.0/v1.75.0.mod) = 13874
-SHA256 (go/net_rclone/rclone-v1.75.0/v1.75.0.zip) = 90fde2baf2b028de6c2759157350684ab12b59811a522087d7444c442e99fd37
-SIZE (go/net_rclone/rclone-v1.75.0/v1.75.0.zip) = 18205257
-SHA256 (go/net_rclone/rclone-v1.75.0/golang-image-v0.45.0_GH0.tar.gz) = b1b95713f38821f3d313f0bcb9e2c8b46df0d504ab35b3dde2a83c74c64950a7
-SIZE (go/net_rclone/rclone-v1.75.0/golang-image-v0.45.0_GH0.tar.gz) = 5136789
-SHA256 (go/net_rclone/rclone-v1.75.0/golang-text-v0.41.0_GH0.tar.gz) = f0e9489f895c3a8f6bcaa9c828672dc16387a05c2e7a8012161bc7dd369e7b8d
-SIZE (go/net_rclone/rclone-v1.75.0/golang-text-v0.41.0_GH0.tar.gz) = 6774308
+TIMESTAMP = 1791834679
+SHA256 (go/net_rclone/rclone-v1.75.2/v1.75.2.mod) = 1c9531778eb026c13390af728f882adbeb30581bd6a10905f95190aab0379906
+SIZE (go/net_rclone/rclone-v1.75.2/v1.75.2.mod) = 13798
+SHA256 (go/net_rclone/rclone-v1.75.2/v1.75.2.zip) = 1a9c0838d7df226cffe5736e9e0f1f2f07ab8c95a7c09d929f86290845198a42
+SIZE (go/net_rclone/rclone-v1.75.2/v1.75.2.zip) = 18444893
