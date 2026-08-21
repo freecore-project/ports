@@ -1,6 +1,8 @@
+# FreeCORE: files/patch-auth-pam.c is a local patch, not in
+# FreeBSD ports. Keep it when syncing this port with upstream.
 PORTNAME=	openssh
-DISTVERSION=	10.6p1
-PORTREVISION=	0
+DISTVERSION=	10.6p2
+PORTREVISION=	1
 PORTEPOCH=	1
 CATEGORIES=	security
 MASTER_SITES=	OPENBSD/OpenSSH/portable

@@ -1,6 +1,6 @@
 PORTNAME=	rclone
 DISTVERSIONPREFIX=	v
-DISTVERSION=	1.75.2
+DISTVERSION=	1.76.0
 PORTREVISION=	1
 CATEGORIES=	net
 
@@ -18,6 +18,10 @@ USES=		cpe go:1.26,modules
 GO_MODULE=	github.com/rclone/rclone
 
 GO_BUILDFLAGS=	-ldflags -s -tags cmount
+
+# v1.76.0.zip carries UTF-8 file names and this line's framework still exports
+# LC_ALL=C (FreeBSD b6ec06f079e1 is on 15.2 only), so tar fails; extract under C.UTF-8.
+EXTRACT_CMD=	${SETENV} LC_ALL=C.UTF-8 ${TAR}
 
 PLIST_FILES=	bin/rclone \
 		bin/rclonefs \
