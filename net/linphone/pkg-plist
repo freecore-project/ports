@@ -1,0 +1,4 @@
+bin/linphone
+lib/linphone/libapp-plugin.so
+share/applications/linphone.desktop
+share/icons/hicolor/scalable/apps/linphone.svg
