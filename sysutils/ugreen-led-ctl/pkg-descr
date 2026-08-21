@@ -1,0 +1,7 @@
+ugreen-led-ctl is an experimental FreeBSD command-line utility for reading
+and controlling front-panel LEDs on selected UGREEN NASync systems through
+smbus(4). It is intended for opt-in hardware validation while the protocol
+and FreeBSD hardware behavior are still being verified upstream.
+
+Installing the utility does not load kernel modules, probe hardware, or run
+any background service.

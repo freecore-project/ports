@@ -1,0 +1,19 @@
+Normalise all line endings when writing values, not just '\n', so a value
+containing CR or CRLF cannot emit a config file that re-parses differently
+from what was written.
+
+Taken verbatim from the upstream CPython 3.11 branch (Lib/configparser.py).
+
+--- Lib/configparser.py.orig
++++ Lib/configparser.py
+@@ -949,7 +949,9 @@
+             value = self._interpolation.before_write(self, section_name, key,
+                                                      value)
+             if value is not None or not self._allow_no_value:
+-                value = delimiter + str(value).replace('\n', '\n\t')
++                # Convert all possible line-endings into '\n\t'
++                value = (delimiter + str(value).replace('\r\n', '\n')
++                         .replace('\r', '\n').replace('\n', '\n\t'))
+             else:
+                 value = ""
+             fp.write("{}{}\n".format(key, value))
