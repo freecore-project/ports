@@ -1,0 +1,66 @@
+Bound unbounded interim (1xx) responses and chunked-trailer lines so a hostile
+or broken server cannot hang getresponse() indefinitely.  A socket timeout does
+not detect this, because data keeps arriving inside every timeout window.
+
+Taken verbatim from the upstream CPython 3.11 branch (Lib/http/client.py).
+The CONNECT tunnel CR/LF guard named by the matching advisory is already
+present in 3.11.15 via _contains_disallowed_url_pchar_re and is unchanged here.
+
+--- Lib/http/client.py.orig
++++ Lib/http/client.py
+@@ -110,6 +110,13 @@
+ # maximal line length when calling readline().
+ _MAXLINE = 65536
+ _MAXHEADERS = 100
++
++# maximal number of interim (1xx) responses tolerated before the final
++# response.  Real servers send at most a few; without a bound, a server
++# streaming "100 Continue" responses would hang getresponse() forever.
++# A socket timeout cannot detect that as data keeps arriving within every
++# timeout window.
++_MAXINTERIMRESPONSES = 100
+ 
+ # Data larger than this will be read in chunks, to prevent extreme
+ # overallocation.
+@@ -326,7 +333,7 @@
+             return
+ 
+         # read until we get a non-100 response
+-        while True:
++        for _ in range(_MAXINTERIMRESPONSES):
+             version, status, reason = self._read_status()
+             if status != CONTINUE:
+                 break
+@@ -335,6 +342,9 @@
+             if self.debuglevel > 0:
+                 print("headers:", skipped_headers)
+             del skipped_headers
++        else:
++            raise HTTPException(
++                f"got more than {_MAXINTERIMRESPONSES} interim responses")
+ 
+         self.code = self.status = status
+         self.reason = reason.strip()
+@@ -552,6 +562,7 @@
+     def _read_and_discard_trailer(self):
+         # read and discard trailer up to the CRLF terminator
+         ### note: we shouldn't have any trailers!
++        trailers_read = 0
+         while True:
+             line = self.fp.readline(_MAXLINE + 1)
+             if len(line) > _MAXLINE:
+@@ -562,6 +573,14 @@
+                 break
+             if line in (b'\r\n', b'\n', b''):
+                 break
++            # Bound the trailer count just as response headers are bounded.
++            # A server streaming trailer lines forever would otherwise hang
++            # the client; a socket timeout cannot detect that as data keeps
++            # arriving within every timeout window.
++            trailers_read += 1
++            if trailers_read > _MAXHEADERS:
++                raise HTTPException(
++                    f"got more than {_MAXHEADERS} trailers")
+ 
+     def _get_chunk_left(self):
+         # return self.chunk_left, reading a new chunk if necessary.

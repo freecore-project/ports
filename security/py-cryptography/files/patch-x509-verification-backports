@@ -1,0 +1,783 @@
+--- src/rust/cryptography-x509-verification/src/lib.rs.orig
++++ src/rust/cryptography-x509-verification/src/lib.rs
+@@ -18,10 +18,14 @@
+ use asn1::ObjectIdentifier;
+ use cryptography_x509::common::Asn1Read;
+ use cryptography_x509::extensions::{
+-    DuplicateExtensionsError, Extensions, NameConstraints, SubjectAlternativeName,
++    AuthorityKeyIdentifier, DuplicateExtensionsError, Extensions, NameConstraints,
++    SubjectAlternativeName,
+ };
+ use cryptography_x509::name::GeneralName;
+-use cryptography_x509::oid::{NAME_CONSTRAINTS_OID, SUBJECT_ALTERNATIVE_NAME_OID};
++use cryptography_x509::oid::{
++    AUTHORITY_KEY_IDENTIFIER_OID, NAME_CONSTRAINTS_OID, SUBJECT_ALTERNATIVE_NAME_OID,
++    SUBJECT_KEY_IDENTIFIER_OID,
++};
+ 
+ use crate::certificate::cert_is_self_issued;
+ use crate::ops::{CryptoOps, VerificationCertificate};
+@@ -98,15 +102,23 @@
+ 
+ struct Budget {
+     name_constraint_checks: usize,
++    signature_checks: usize,
+ }
+ 
+ impl Budget {
+-    // Same limit as other validators
++    // The maximum number of name constraint checks performed when attempting
++    // path construction. This is the same limit as other validators.
+     const DEFAULT_NAME_CONSTRAINT_CHECK_LIMIT: usize = 1 << 20;
+ 
++    // The maximum number of signature verifications performed when attempting
++    // path construction. The is similar to other validators:
++    // both Go and rustls-webpki pick 100.
++    const DEFAULT_SIGNATURE_CHECK_LIMIT: usize = 1 << 7;
++
+     fn new() -> Budget {
+         Budget {
+             name_constraint_checks: Self::DEFAULT_NAME_CONSTRAINT_CHECK_LIMIT,
++            signature_checks: Self::DEFAULT_SIGNATURE_CHECK_LIMIT,
+         }
+     }
+ 
+@@ -119,6 +131,15 @@
+             })?;
+         Ok(())
+     }
++
++    fn signature_check<'chain, B: CryptoOps>(&mut self) -> ValidationResult<'chain, (), B> {
++        self.signature_checks = self.signature_checks.checked_sub(1).ok_or_else(|| {
++            ValidationError::new(ValidationErrorKind::FatalError(
++                "Exceeded maximum signature check limit",
++            ))
++        })?;
++        Ok(())
++    }
+ }
+ 
+ struct NameChain<'a, 'chain> {
+@@ -147,6 +168,7 @@
+ 
+     fn evaluate_single_constraint<B: CryptoOps>(
+         &self,
++        kind: SubtreeKind,
+         constraint: &GeneralName<'chain>,
+         san: &GeneralName<'chain>,
+         budget: &mut Budget,
+@@ -155,16 +177,18 @@
+ 
+         match (constraint, san) {
+             (GeneralName::DNSName(constraint), GeneralName::DNSName(name)) => {
+-                // NOTE: A DNS SAN can be a wildcard pattern instead of a normal DNS name.
+-                // These are handled by matching unconditionally on the inner name,
+-                // since a NC of `foo.com` will match both `foo.com` and any arbitrarily deep
+-                // subdomain of `foo.com`, where a wildcard SAN like `*.foo.com` will only
+-                // match exactly one subdomain of `foo.com`. Therefore, the NC's matching
+-                // set is a strict superset of any possible wildcard SAN pattern.
++                // NOTE: A DNS SAN can be a wildcard pattern (e.g. `*.foo.com`)
++                // rather than an ordinary DNS name. A wildcard represents a
++                // *set* of names, so the check depends on which subtree we're
++                // evaluating: a `permittedSubtrees` constraint must contain
++                // *every* name the wildcard can expand to, whereas an
++                // `excludedSubtrees` constraint matches if it overlaps the
++                // wildcard at all. We dispatch on `kind` accordingly.
+                 match (DNSConstraint::new(constraint.0), DNSPattern::new(name.0)) {
+-                    (Some(constraint), Some(name)) => {
+-                        Ok(Applied(constraint.matches(name.inner_name())))
+-                    }
++                    (Some(constraint), Some(name)) => Ok(Applied(match kind {
++                        SubtreeKind::Permitted => constraint.permits(&name),
++                        SubtreeKind::Excluded => constraint.excludes(&name),
++                    })),
+                     (_, None) => Err(ValidationError::new(ValidationErrorKind::Other(format!(
+                         "unsatisfiable DNS name constraint: malformed SAN {}",
+                         name.0
+@@ -234,7 +258,12 @@
+             let mut permit = true;
+             if let Some(permitted_subtrees) = &constraints.permitted_subtrees {
+                 for p in permitted_subtrees.clone() {
+-                    let status = self.evaluate_single_constraint(&p.base, &san, budget)?;
++                    let status = self.evaluate_single_constraint(
++                        SubtreeKind::Permitted,
++                        &p.base,
++                        &san,
++                        budget,
++                    )?;
+                     if status.is_applied() {
+                         permit = status.is_match();
+                         if permit {
+@@ -252,7 +281,12 @@
+ 
+             if let Some(excluded_subtrees) = &constraints.excluded_subtrees {
+                 for e in excluded_subtrees.clone() {
+-                    let status = self.evaluate_single_constraint(&e.base, &san, budget)?;
++                    let status = self.evaluate_single_constraint(
++                        SubtreeKind::Excluded,
++                        &e.base,
++                        &san,
++                        budget,
++                    )?;
+                     if status.is_match() {
+                         return Err(ValidationError::new(ValidationErrorKind::Other(
+                             "excluded name constraint matched SAN".into(),
+@@ -286,6 +320,16 @@
+     store: &'a Store<'chain, B>,
+ }
+ 
++/// Identifies which kind of name constraint subtree a SAN is being evaluated
++/// against. The two subtree kinds use different matching semantics for
++/// wildcard DNS SANs (containment vs. overlap); see [`DNSConstraint::permits`]
++/// and [`DNSConstraint::excludes`].
++#[derive(Clone, Copy)]
++enum SubtreeKind {
++    Permitted,
++    Excluded,
++}
++
+ // When applying a name constraint, we need to distinguish between a few different scenarios:
+ // * `Applied(true)`: The name constraint is the same type as the SAN and matches.
+ // * `Applied(false)`: The name constraint is the same type as the SAN and does not match.
+@@ -318,18 +362,57 @@
+         }
+     }
+ 
++    /// Identify and return potential issuers for `cert`, considering
++    /// candidates from both the trusted store and untrusted intermediate set.
++    /// Trusted candidates are returned before untrusted intermediate
++    /// candidates, and both groups are opportunisitically ordered by
++    /// "likeliness" in terms of AKI/SKI match.
+     fn potential_issuers(
+         &self,
+         cert: &'a VerificationCertificate<'chain, B>,
+-    ) -> impl Iterator<Item = &'a VerificationCertificate<'chain, B>> + '_ {
+-        // TODO: Optimizations:
+-        // * Search by AKI and other identifiers?
+-        self.store
++        cert_extensions: &Extensions<'chain>,
++    ) -> Vec<&'a VerificationCertificate<'chain, B>> {
++        let mut candidates: Vec<&'a VerificationCertificate<'chain, B>> = self
++            .store
+             .get_by_subject(&cert.certificate().tbs_cert.issuer)
+             .iter()
+             .chain(self.intermediates.iter().filter(|&candidate| {
+                 candidate.certificate().subject() == cert.certificate().issuer()
+             }))
++            .collect();
++
++        let want_kid: Option<&[u8]> = cert_extensions
++            .get_extension(&AUTHORITY_KEY_IDENTIFIER_OID)
++            .and_then(|ext| ext.value::<AuthorityKeyIdentifier<'_, Asn1Read>>().ok())
++            .and_then(|aki| aki.key_identifier);
++
++        // This mirrors Go's `findPotentialParents`: we have a global
++        // signature budget, so we want to bucket candidates by likeliness
++        // to avoid wasting budget on (potentially adversarial) name collisions.
++        //
++        // Observe that we use a stable sort to preserve trusted candidates
++        // before untrusted candidates in each likeliness bucket. In other
++        // words, we always try a likely trusted candidate over an equally
++        // likely untrusted one.
++        //
++        // See: <https://github.com/golang/go/blob/d00c67f297e/src/crypto/x509/cert_pool.go#L136>
++        candidates.sort_by_key(|candidate| {
++            let have_kid: Option<&[u8]> =
++                candidate.certificate().extensions().ok().and_then(|exts| {
++                    exts.get_extension(&SUBJECT_KEY_IDENTIFIER_OID)
++                        .and_then(|ext| ext.value::<&[u8]>().ok())
++                });
++
++            match (want_kid, have_kid) {
++                // cert AKID matches candidate SKID, highest likelihood.
++                (Some(want), Some(have)) if want == have => 0,
++                // cert AKID and candidate SKID don't match, lowest likelihood.
++                (Some(_), Some(_)) => 2,
++                // cert AKID and/or candidate SKID is not present, medium likelihood.
++                _ => 1u8,
++            }
++        });
++        candidates
+     }
+ 
+     fn build_chain_inner(
+@@ -362,7 +445,8 @@
+         // Otherwise, we collect a list of potential issuers for this cert,
+         // and continue with the first that verifies.
+         let mut last_err: Option<ValidationError<'_, B>> = None;
+-        for issuing_cert_candidate in self.potential_issuers(working_cert) {
++        for issuing_cert_candidate in self.potential_issuers(working_cert, working_cert_extensions)
++        {
+             // A candidate issuer is said to verify if it both
+             // signs for the working certificate and conforms to the
+             // policy.
+@@ -372,6 +456,7 @@
+                 working_cert,
+                 current_depth,
+                 &issuer_extensions,
++                budget,
+             ) {
+                 Ok(_) => {
+                     match self.build_chain_inner(
+@@ -480,10 +565,15 @@
+ #[cfg(test)]
+ mod tests {
+     use asn1::ParseError;
++    use cryptography_x509::certificate::Certificate;
+     use cryptography_x509::oid::SUBJECT_ALTERNATIVE_NAME_OID;
+ 
+     use crate::certificate::tests::PublicKeyErrorOps;
+-    use crate::{ValidationError, ValidationErrorKind};
++    use crate::ops::{CryptoOps, VerificationCertificate};
++    use crate::policy::{Policy, PolicyDefinition, Subject};
++    use crate::trust_store::Store;
++    use crate::types::DNSName;
++    use crate::{Budget, ChainBuilder, NameChain, ValidationError, ValidationErrorKind};
+ 
+     #[test]
+     fn test_validationerror_display() {
+@@ -505,4 +595,102 @@
+             ValidationError::<PublicKeyErrorOps>::new(ValidationErrorKind::FatalError("oops"));
+         assert_eq!(err.to_string(), "fatal error: oops");
+     }
++
++    /// A `CryptoOps` whose public key extraction and signature verification
++    /// always succeed, so that `valid_issuer` can be driven to completion
++    /// without real cryptographic material.
++    struct NullOps;
++
++    impl CryptoOps for NullOps {
++        type Key = ();
++        type Err = ();
++        type CertificateExtra = ();
++        type PolicyExtra = ();
++
++        fn public_key(&self, _cert: &Certificate<'_>) -> Result<Self::Key, Self::Err> {
++            Ok(())
++        }
++
++        fn verify_signed_by(
++            &self,
++            _cert: &Certificate<'_>,
++            _key: &Self::Key,
++        ) -> Result<(), Self::Err> {
++            Ok(())
++        }
++
++        fn clone_public_key(_key: &Self::Key) -> Self::Key {}
++
++        fn clone_extra(_extra: &Self::CertificateExtra) -> Self::CertificateExtra {}
++    }
++
++    #[test]
++    fn test_clone() {
++        assert_eq!(NullOps::clone_public_key(&()), ());
++        assert_eq!(NullOps::clone_extra(&()), ());
++    }
++
++    // A self-issued ("looping") CA certificate that is its own issuer.
++    fn looping_ca_pem() -> pem::Pem {
++        pem::parse(
++            "-----BEGIN CERTIFICATE-----
++MIIBcjCCARmgAwIBAgIBATAKBggqhkjOPQQDAjAhMR8wHQYDVQQDDBZsb29waW5n
++IHNlbGYtc2lnbmVkIENBMB4XDTIzMTIzMTAwMDAwMFoXDTI0MDEzMTAwMDAwMFow
++ITEfMB0GA1UEAwwWbG9vcGluZyBzZWxmLXNpZ25lZCBDQTBZMBMGByqGSM49AgEG
++CCqGSM49AwEHA0IABKAoXUGnHdfXJbSXjRjeW+PCVHmlo4KEki69N5pJUA0QyQMR
++v9ySOMnWf3Ea7TR4g3zdguwTP7LdpSku3uR1QkmjQjBAMA8GA1UdEwEB/wQFMAMB
++Af8wDgYDVR0PAQH/BAQDAgGGMB0GA1UdDgQWBBR23MGdG1Ma9iR+3CxKTafD/OE0
++dTAKBggqhkjOPQQDAgNHADBEAiA4RCr07KfZdM16VfGNZAQFjvC60SWIU3RRVY/L
++qolIOwIgCaIgj9ipK0Q0p+45UJiq+L/ncrxsweJkFq/UYubzhX0=
++-----END CERTIFICATE-----",
++        )
++        .unwrap()
++    }
++
++    /// Exercises our pathlen overflow error scenario.
++    ///
++    /// This condition is logically unreachable from Python, since
++    /// we unconditionally limit signature checks to a number smaller
++    /// than `u8::MAX`, meaning that we always exhaust the signature budget
++    /// before potentially exhausting the pathlen budget.
++    ///
++    /// To test that directly, we manually lift the signature budget
++    /// and start our pathlen state right at `u8::MAX`, guaranteeing
++    /// an overflow on the immediate chain building step.
++    #[test]
++    fn test_build_chain_inner_depth_overflow() {
++        let pem = looping_ca_pem();
++        let ca = asn1::parse_single::<Certificate<'_>>(pem.contents()).unwrap();
++        let ca_exts = ca.extensions().ok().unwrap();
++
++        // The same self-issued CA is both the working certificate and its own
++        // (only) candidate issuer, so the search recurses on itself.
++        let working = VerificationCertificate::<NullOps>::new(&ca, ());
++        let intermediates = [VerificationCertificate::<NullOps>::new(&ca, ())];
++        let store: Store<'_, NullOps> = Store::new([]);
++
++        let subject = Subject::DNS(DNSName::new("example.com").unwrap());
++        let time = asn1::DateTime::new(2024, 1, 1, 0, 0, 0).unwrap();
++        let policy_def =
++            PolicyDefinition::server(NullOps, subject, time, Some(u8::MAX), None, None).unwrap();
++        let policy = Policy::new(&policy_def, ());
++
++        let builder = ChainBuilder::new(&intermediates, &policy, &store);
++        let mut budget = Budget {
++            name_constraint_checks: usize::MAX,
++            signature_checks: usize::MAX,
++        };
++
++        let name_chain = NameChain::new::<NullOps>(None, &ca_exts, false)
++            .ok()
++            .unwrap();
++        let err = builder
++            .build_chain_inner(&working, u8::MAX, &ca_exts, name_chain, &mut budget)
++            .unwrap_err();
++
++        assert!(matches!(
++            err.kind,
++            ValidationErrorKind::Other(msg) if msg.contains("current depth calculation overflowed")
++        ));
++    }
+ }
+--- src/rust/cryptography-x509-verification/src/policy/mod.rs.orig
++++ src/rust/cryptography-x509-verification/src/policy/mod.rs
+@@ -30,7 +30,9 @@
+     PresentExtensionValidatorCallback,
+ };
+ use crate::types::{DNSName, DNSPattern, IPAddress};
+-use crate::{ValidationError, ValidationErrorKind, ValidationResult, VerificationCertificate};
++use crate::{
++    Budget, ValidationError, ValidationErrorKind, ValidationResult, VerificationCertificate,
++};
+ 
+ // RSA key constraints, as defined in CA/B 6.1.5.
+ const WEBPKI_MINIMUM_RSA_MODULUS: usize = 2048;
+@@ -503,6 +505,7 @@
+         child: &VerificationCertificate<'chain, B>,
+         current_depth: u8,
+         issuer_extensions: &Extensions<'_>,
++        budget: &mut Budget,
+     ) -> ValidationResult<'chain, (), B> {
+         // The issuer needs to be a valid CA at the current depth.
+         self.permits_ca(issuer, current_depth, issuer_extensions)
+@@ -563,6 +566,10 @@
+             }
+         }
+ 
++        // Charge the (potentially expensive) signature verification against the
++        // budget before performing it, bounding the total work an attacker can
++        // force during chain building.
++        budget.signature_check()?;
+         if self.ops.verify_signed_by(child.certificate(), pk).is_err() {
+             return Err(ValidationError::new(ValidationErrorKind::Other(
+                 "signature does not match".to_string(),
+--- src/rust/cryptography-x509-verification/src/types.rs.orig
++++ src/rust/cryptography-x509-verification/src/types.rs
+@@ -138,19 +138,6 @@
+             },
+         }
+     }
+-
+-    /// Returns the inner `DNSName` within this `DNSPattern`, e.g.
+-    /// `foo.com` for `*.foo.com` or `example.com` for `example.com`.
+-    ///
+-    /// This API must not be used to bypass pattern matching; it exists
+-    /// solely to enable checks that only require the inner name, such
+-    /// as Name Constraint checks.
+-    pub fn inner_name(&self) -> &DNSName<'a> {
+-        match self {
+-            DNSPattern::Exact(dnsname) => dnsname,
+-            DNSPattern::Wildcard(dnsname) => dnsname,
+-        }
+-    }
+ }
+ 
+ /// A `DNSConstraint` represents a DNS name constraint as defined in [RFC 5280 4.2.1.10].
+@@ -163,22 +150,13 @@
+         DNSName::new(pattern).map(Self)
+     }
+ 
+-    /// Returns true if this `DNSConstraint` matches the given name.
++    /// Returns true if the given exact `DNSName` falls within this
++    /// constraint's subtree.
+     ///
+-    /// Constraint matching is defined by RFC 5280: any DNS name that can
+-    /// be constructed by simply adding zero or more labels to the left-hand
+-    /// side of the name satisfies the name constraint.
+-    ///
+-    /// ```rust
+-    /// # use cryptography_x509_verification::types::{DNSConstraint, DNSName};
+-    /// let example_com = DNSName::new("example.com").unwrap();
+-    /// let badexample_com = DNSName::new("badexample.com").unwrap();
+-    /// let foo_example_com = DNSName::new("foo.example.com").unwrap();
+-    /// assert!(DNSConstraint::new(example_com.as_str()).unwrap().matches(&example_com));
+-    /// assert!(DNSConstraint::new(example_com.as_str()).unwrap().matches(&foo_example_com));
+-    /// assert!(!DNSConstraint::new(example_com.as_str()).unwrap().matches(&badexample_com));
+-    /// ```
+-    pub fn matches(&self, name: &DNSName<'_>) -> bool {
++    /// Per RFC 5280, a name satisfies the constraint if it can be constructed
++    /// by adding zero or more labels to the left-hand side of the constraint's
++    /// name (i.e. it is the constraint's name, or a subdomain of it).
++    fn contains(&self, name: &DNSName<'_>) -> bool {
+         // NOTE: This may seem like an obtuse way to perform label matching,
+         // but it saves us a few allocations: doing a substring check instead
+         // would require us to clone each string and do case normalization.
+@@ -193,6 +171,50 @@
+                 .zip(name.rlabels())
+                 .all(|(a, o)| a.eq_ignore_ascii_case(o))
+     }
++
++    /// Returns true if the given `DNSPattern` is permitted by this constraint,
++    /// for use with a `permittedSubtrees` name constraint.
++    ///
++    /// A pattern is permitted only if *every* name it can represent falls
++    /// within the constraint's subtree. An exact name is permitted by ordinary
++    /// subtree containment (per RFC 5280).
++    ///
++    /// Wildcard patterns are not covered by RFC 5280; we define their behavior
++    /// here. A wildcard pattern `*.X` is permitted only if its base name `X`
++    /// itself falls within the constraint's subtree. This is stricter than
++    /// mere overlap: `*.example.com` is *not* permitted by `foo.example.com`,
++    /// since it can also expand to a sibling such as `bar.example.com` that
++    /// lies outside the permitted subtree.
++    pub fn permits(&self, pattern: &DNSPattern<'_>) -> bool {
++        match pattern {
++            DNSPattern::Exact(name) => self.contains(name),
++            DNSPattern::Wildcard(base) => self.contains(base),
++        }
++    }
++
++    /// Returns true if the given `DNSPattern` is excluded by this constraint,
++    /// for use with an `excludedSubtrees` name constraint.
++    ///
++    /// A pattern is excluded if *any* name it can represent falls within the
++    /// constraint's subtree. An exact name is excluded by ordinary subtree
++    /// containment (per RFC 5280).
++    ///
++    /// Wildcard patterns are not covered by RFC 5280; we define their behavior
++    /// here. A wildcard pattern `*.X` is excluded if it overlaps the subtree
++    /// at all, which happens in two subtly distinct cases:
++    ///
++    /// 1. The constraint is more specific than the wildcard, e.g. constraint
++    ///    `bar.example.com` and pattern `*.example.com` (which can expand to
++    ///    `bar.example.com`). This is handled by `DNSPattern::matches`.
++    /// 2. The wildcard's base name falls within the subtree, e.g. constraint
++    ///    `example.com` and pattern `*.example.com`. This is handled by
++    ///    `DNSConstraint::contains`.
++    pub fn excludes(&self, pattern: &DNSPattern<'_>) -> bool {
++        match pattern {
++            DNSPattern::Exact(name) => self.contains(name),
++            DNSPattern::Wildcard(base) => pattern.matches(&self.0) || self.contains(base),
++        }
++    }
+ }
+ 
+ #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+@@ -593,18 +615,69 @@
+     }
+ 
+     #[test]
+-    fn test_dnsconstraint_matches() {
++    fn test_dnsconstraint_exact() {
+         let example_com = DNSConstraint::new("example.com").unwrap();
+ 
+-        // Exact domain and arbitrary subdomains match.
+-        assert!(example_com.matches(&DNSName::new("example.com").unwrap()));
+-        assert!(example_com.matches(&DNSName::new("foo.example.com").unwrap()));
+-        assert!(example_com.matches(&DNSName::new("foo.bar.baz.quux.example.com").unwrap()));
++        // For exact patterns, `permits` and `excludes` behave identically:
++        // the pattern must fall within the constraint's subtree.
++        for permitted in [
++            "example.com",
++            "foo.example.com",
++            "foo.bar.baz.quux.example.com",
++        ] {
++            let pattern = DNSPattern::new(permitted).unwrap();
++            assert!(example_com.permits(&pattern));
++            assert!(example_com.excludes(&pattern));
++        }
+ 
+         // Parent domains, distinct domains, and substring domains do not match.
+-        assert!(!example_com.matches(&DNSName::new("com").unwrap()));
+-        assert!(!example_com.matches(&DNSName::new("badexample.com").unwrap()));
+-        assert!(!example_com.matches(&DNSName::new("wrong.com").unwrap()));
++        for rejected in ["com", "badexample.com", "wrong.com"] {
++            let pattern = DNSPattern::new(rejected).unwrap();
++            assert!(!example_com.permits(&pattern));
++            assert!(!example_com.excludes(&pattern));
++        }
++    }
++
++    #[test]
++    fn test_dnsconstraint_permits_wildcard() {
++        let com = DNSConstraint::new("com").unwrap();
++        let example_com = DNSConstraint::new("example.com").unwrap();
++        let foo_example_com = DNSConstraint::new("foo.example.com").unwrap();
++        let any_example_com = DNSPattern::new("*.example.com").unwrap();
++
++        // A wildcard `*.example.com` is permitted only by constraints whose
++        // subtree contains *every* name the wildcard can expand to, i.e. those
++        // that contain `example.com` itself.
++        assert!(com.permits(&any_example_com));
++        assert!(example_com.permits(&any_example_com));
++
++        // A constraint more specific than the wildcard's base does *not*
++        // permit it: the wildcard can expand to siblings outside the subtree
++        // (e.g. `*.example.com` can be `bar.example.com`, which lies outside
++        // `foo.example.com`).
++        assert!(!foo_example_com.permits(&any_example_com));
++    }
++
++    #[test]
++    fn test_dnsconstraint_excludes_wildcard() {
++        let com = DNSConstraint::new("com").unwrap();
++        let example_com = DNSConstraint::new("example.com").unwrap();
++        let bar_example_com = DNSConstraint::new("bar.example.com").unwrap();
++        let baz_bar_example_com = DNSConstraint::new("baz.bar.example.com").unwrap();
++        let any_example_com = DNSPattern::new("*.example.com").unwrap();
++
++        // A wildcard `*.example.com` is excluded by any constraint whose
++        // subtree it overlaps, including constraints more specific than the
++        // wildcard's base.
++        assert!(com.excludes(&any_example_com));
++        assert!(example_com.excludes(&any_example_com));
++        assert!(bar_example_com.excludes(&any_example_com));
++
++        // A constraint on `baz.bar.example.com` doesn't overlap
++        // `*.example.com`, since `baz.bar.example.com` matches zero or more
++        // sublabels of `baz.bar.example.com` while `*.example.com` matches
++        // exactly one sublabel of `example.com`.
++        assert!(!baz_bar_example_com.excludes(&any_example_com));
+     }
+ 
+     #[test]
+--- src/rust/src/backend/ec.rs.orig
++++ src/rust/src/backend/ec.rs
+@@ -143,12 +143,10 @@
+ ) -> CryptographyResult<ECPublicKey> {
+     let ec = pkey.ec_key()?;
+     let curve = py_curve_from_curve(py, ec.group())?;
+-    check_key_infinity(&ec)?;
+-    Ok(ECPublicKey {
+-        pkey: pkey.to_owned(),
+-        curve: curve.into(),
+-    })
++
++    ECPublicKey::new(pkey.to_owned(), curve.into())
+ }
++
+ #[pyo3::pyfunction]
+ #[pyo3(signature = (curve, backend=None))]
+ fn generate_private_key(
+@@ -206,10 +204,7 @@
+     let ec = openssl::ec::EcKey::from_public_key(&curve, &point)?;
+     let pkey = openssl::pkey::PKey::from_ec_key(ec)?;
+ 
+-    Ok(ECPublicKey {
+-        pkey,
+-        curve: py_curve.into(),
+-    })
++    ECPublicKey::new(pkey, py_curve.into())
+ }
+ 
+ #[pyo3::pymethods]
+@@ -375,6 +370,29 @@
+     }
+ }
+ 
++impl ECPublicKey {
++    fn new(
++        pkey: openssl::pkey::PKey<openssl::pkey::Public>,
++        curve: pyo3::Py<pyo3::PyAny>,
++    ) -> CryptographyResult<ECPublicKey> {
++        let ec = pkey.ec_key()?;
++        check_key_infinity(&ec)?;
++        let mut bn_ctx = openssl::bn::BigNumContext::new()?;
++        let mut cofactor = openssl::bn::BigNum::new()?;
++        ec.group().cofactor(&mut cofactor, &mut bn_ctx)?;
++        let one = openssl::bn::BigNum::from_u32(1)?;
++        if cofactor != one {
++            ec.check_key().map_err(|_| {
++                pyo3::exceptions::PyValueError::new_err(
++                    "Invalid EC key (key out of range, infinity, etc.)",
++                )
++            })?;
++        }
++
++        Ok(ECPublicKey { pkey, curve })
++    }
++}
++
+ #[pyo3::pymethods]
+ impl ECPublicKey {
+     #[getter]
+@@ -615,10 +633,7 @@
+ 
+         let pkey = openssl::pkey::PKey::from_ec_key(public_key)?;
+ 
+-        Ok(ECPublicKey {
+-            pkey,
+-            curve: self.curve.clone_ref(py),
+-        })
++        ECPublicKey::new(pkey, self.curve.clone_ref(py))
+     }
+ 
+     fn __eq__(
+--- src/rust/src/backend/mod.rs.orig
++++ src/rust/src/backend/mod.rs
+@@ -21,6 +21,7 @@
+ pub(crate) mod kdf;
+ pub(crate) mod keys;
+ pub(crate) mod poly1305;
++pub(crate) mod rand;
+ pub(crate) mod rsa;
+ pub(crate) mod utils;
+ pub(crate) mod x25519;
+--- src/rust/src/buf.rs.orig
++++ src/rust/src/buf.rs
+@@ -36,6 +36,11 @@
+             "Buffer is not writable.",
+         ));
+     };
++    if !buf.is_c_contiguous() {
++        return Err(pyo3::exceptions::PyBufferError::new_err(
++            "Buffer is not contiguous.",
++        ));
++    }
+     let ptr = buf.buf_ptr() as usize;
+     let len = buf.len_bytes();
+     Ok((Some(buf), ptr, len))
+--- src/rust/src/pkcs7.rs.orig
++++ src/rust/src/pkcs7.rs
+@@ -264,27 +264,6 @@
+                         pyo3::exceptions::PyValueError::new_err(
+                             "No recipient found that matches the given certificate.",
+                         ),
+-                    ));
+-                }
+-            };
+-
+-            // Raise error when the key encryption algorithm is not RSA
+-            let key = match recipient_info.key_encryption_algorithm.oid() {
+-                &oid::RSA_OID => {
+-                    let padding = types::PKCS1V15.get(py)?.call0()?;
+-                    private_key
+-                        .call_method1(
+-                            pyo3::intern!(py, "decrypt"),
+-                            (recipient_info.encrypted_key, &padding),
+-                        )?
+-                        .extract::<pyo3::pybacked::PyBackedBytes>()?
+-                }
+-                _ => {
+-                    return Err(CryptographyError::from(
+-                        exceptions::UnsupportedAlgorithm::new_err((
+-                            "Only RSA with PKCS #1 v1.5 padding is currently supported for key decryption.",
+-                            exceptions::Reasons::UNSUPPORTED_SERIALIZATION,
+-                        )),
+                     ));
+                 }
+             };
+@@ -296,19 +275,9 @@
+             let algorithm_identifier = enveloped_data
+                 .encrypted_content_info
+                 .content_encryption_algorithm;
+-            let (algorithm, mode) = match algorithm_identifier.params {
+-                AlgorithmParameters::Aes128Cbc(iv) => (
+-                    types::AES128.get(py)?.call1((key,))?,
+-                    types::CBC
+-                        .get(py)?
+-                        .call1((pyo3::types::PyBytes::new(py, &iv),))?,
+-                ),
+-                AlgorithmParameters::Aes256Cbc(iv) => (
+-                    types::AES256.get(py)?.call1((key,))?,
+-                    types::CBC
+-                        .get(py)?
+-                        .call1((pyo3::types::PyBytes::new(py, &iv),))?,
+-                ),
++            let (algorithm_type, key_size, iv) = match algorithm_identifier.params {
++                AlgorithmParameters::Aes128Cbc(iv) => (&types::AES128, 16, iv),
++                AlgorithmParameters::Aes256Cbc(iv) => (&types::AES256, 32, iv),
+                 _ => {
+                     return Err(CryptographyError::from(
+                         exceptions::UnsupportedAlgorithm::new_err((
+@@ -319,6 +288,50 @@
+                 }
+             };
+ 
++            // Raise error when the key encryption algorithm is not RSA
++            if recipient_info.key_encryption_algorithm.oid() != &oid::RSA_OID {
++                return Err(CryptographyError::from(
++                    exceptions::UnsupportedAlgorithm::new_err((
++                        "Only RSA with PKCS #1 v1.5 padding is currently supported for key decryption.",
++                        exceptions::Reasons::UNSUPPORTED_SERIALIZATION,
++                    )),
++                ));
++            }
++
++            // Unwrap the content encryption key. RFC 3218 requires that a
++            // failure to recover a usable key is not distinguishable from
++            // recovering a key that simply isn't the right one -- otherwise
++            // this becomes a Bleichenbacher oracle for anything that decrypts
++            // attacker-supplied data. We substitute a random key of the
++            // expected size, so that every failure surfaces as the same
++            // content decryption error.
++            let padding = types::PKCS1V15.get(py)?.call0()?;
++            let random_key = crate::backend::rand::get_rand_bytes(py, key_size)?;
++            let key = match private_key.call_method1(
++                pyo3::intern!(py, "decrypt"),
++                (recipient_info.encrypted_key, &padding),
++            ) {
++                Ok(key) => {
++                    let key = key.extract::<pyo3::Bound<'_, pyo3::types::PyBytes>>()?;
++                    if key.as_bytes().len() == key_size {
++                        key
++                    } else {
++                        random_key
++                    }
++                }
++                // A ValueError here is entirely attacker controlled (invalid
++                // padding, or an encrypted key of the wrong length) and must
++                // stay silent. Any other exception reflects a caller mistake
++                // rather than the contents of the message.
++                Err(e) if e.is_instance_of::<pyo3::exceptions::PyValueError>(py) => random_key,
++                Err(e) => return Err(e.into()),
++            };
++
++            let algorithm = algorithm_type.get(py)?.call1((key,))?;
++            let mode = types::CBC
++                .get(py)?
++                .call1((pyo3::types::PyBytes::new(py, &iv),))?;
++
+             // Decrypt the content using the key and proper algorithm
+             let encrypted_content = match enveloped_data.encrypted_content_info.encrypted_content {
+                 Some(content) => content,
+--- /dev/null
++++ src/rust/src/backend/rand.rs
+@@ -0,0 +1,26 @@
++// This file is dual licensed under the terms of the Apache License, Version
++// 2.0, and the BSD License. See the LICENSE file in the root of this repository
++// for complete details.
++
++use crate::error::{CryptographyError, CryptographyResult};
++
++pub(crate) fn get_rand_bytes(
++    py: pyo3::Python<'_>,
++    size: usize,
++) -> CryptographyResult<pyo3::Bound<'_, pyo3::types::PyBytes>> {
++    Ok(pyo3::types::PyBytes::new_with(py, size, |b| {
++        #[cfg(any(
++            CRYPTOGRAPHY_IS_LIBRESSL,
++            CRYPTOGRAPHY_IS_BORINGSSL,
++            CRYPTOGRAPHY_IS_AWSLC
++        ))]
++        openssl::rand::rand_bytes(b).map_err(CryptographyError::from)?;
++        #[cfg(not(any(
++            CRYPTOGRAPHY_IS_LIBRESSL,
++            CRYPTOGRAPHY_IS_BORINGSSL,
++            CRYPTOGRAPHY_IS_AWSLC
++        )))]
++        openssl::rand::rand_priv_bytes(b).map_err(CryptographyError::from)?;
++        Ok(())
++    })?)
++}
+

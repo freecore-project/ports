@@ -1,0 +1,8 @@
+VERSIONS=		320 321 322 323 324 325 326
+CFENGINE_VERSION?=	326
+
+MASTERDIR=		${.CURDIR}/../cfengine-masterfiles${CFENGINE_VERSION}
+
+CPE_PRODUCT=		cfengine
+
+.include "${MASTERDIR}/Makefile"

@@ -1,0 +1,19 @@
+--- meson.build.orig	2021-02-11 04:24:55.280943200 -0800
++++ meson.build	2021-02-18 15:34:48.476370000 -0800
+@@ -434,7 +434,6 @@
+   'sys/inotify.h',
+   'sys/mkdev.h',
+   'sys/mntctl.h',
+-  'sys/mnttab.h',
+   'sys/mount.h',
+   'sys/param.h',
+   'sys/prctl.h',
+@@ -2287,6 +2286,8 @@
+ test_timeout = 60
+ test_timeout_slow = 180
+ 
++libutil = [cc.find_library('util', required : true)]
++
+ pkg = import('pkgconfig')
+ windows = import('windows')
+ subdir('glib')
