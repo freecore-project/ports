@@ -2,7 +2,7 @@ PORTNAME=			${SAMBA4_BASENAME}424
 PORTVERSION=			${SAMBA4_VERSION}
 # The source checkout changed under the same version; the revision makes
 # poudriere rebuild instead of keeping the cached package.
-PORTREVISION=			0
+PORTREVISION=			1
 PORTEPOCH=			1
 CATEGORIES?=			net
 # TrueNAS fork: source comes from /usr/nas_source/samba, not distfiles
