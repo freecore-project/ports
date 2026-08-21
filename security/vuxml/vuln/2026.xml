@@ -1,0 +1,320 @@
+  <vuln vid="fd3855b8-efbc-11f0-9e3f-b0416f0c4c67">
+    <topic>virtualenv -- CWE-59: Improper Link Resolution Before File Access ('Link Following')</topic>
+    <affects>
+    <package>
+	<name>py310-virtualenv</name>
+	<name>py311-virtualenv</name>
+	<name>py312-virtualenv</name>
+	<name>py313-virtualenv</name>
+	<name>py313t-virtualenv</name>
+	<name>py314-virtualenv</name>
+	<range><lt>20.36.1</lt></range>
+    </package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>https://github.com/pypa/virtualenv/security/advisories/GHSA-597g-3phw-6986 reports:</p>
+	<blockquote cite="https://github.com/pypa/virtualenv/security/advisories/GHSA-597g-3phw-6986">
+	  <p>virtualenv is a tool for creating isolated virtual python environments.
+Prior to version 20.36.1, TOCTOU (Time-of-Check-Time-of-Use)
+vulnerabilities in virtualenv allow local attackers to perform
+symlink-based attacks on directory creation operations.  An attacker
+with local access can exploit a race condition between directory
+existence checks and creation to redirect virtualenv's app_data and
+lock file operations to attacker-controlled locations.  This issue
+has been patched in version 20.36.1.</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <cvename>CVE-2026-22702</cvename>
+      <url>https://cveawg.mitre.org/api/cve/CVE-2026-22702</url>
+    </references>
+    <dates>
+      <discovery>2026-01-10</discovery>
+      <entry>2026-01-12</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="7e63d0dd-eeff-11f0-b135-c01803b56cc4">
+    <topic>libtasn1 -- Stack-based buffer overflow</topic>
+    <affects>
+<package>
+<name>libtasn1</name>
+<range><lt>4.21.0</lt></range>
+</package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>oss-security@ list reports:</p>
+	<blockquote cite="https://www.openwall.com/lists/oss-security/2026/01/08/5">
+	<p>Stack-based buffer overflow in libtasn1 version: v4.20.0.
+	The function fails to validate the size of input data resulting
+	in a buffer overflow in asn1_expend_octet_string.</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <cvename>CVE-2025-13151</cvename>
+      <url>https://nvd.nist.gov/vuln/detail/CVE-2025-13151</url>
+    </references>
+    <dates>
+      <discovery>2026-01-07</discovery>
+      <entry>2026-01-11</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="c9b610e9-eebc-11f0-b051-2cf05da270f3">
+    <topic>Gitlab -- vulnerabilities</topic>
+    <affects>
+      <package>
+	<name>gitlab-ce</name>
+	<name>gitlab-ee</name>
+	<range><ge>18.7.0</ge><lt>18.7.1</lt></range>
+	<range><ge>18.6.0</ge><lt>18.6.3</lt></range>
+	<range><ge>8.3.0</ge><lt>18.5.5</lt></range>
+      </package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>Gitlab reports:</p>
+	<blockquote cite="https://about.gitlab.com/releases/2026/01/07/patch-release-gitlab-18-7-1-released/">
+	  <p>Stored Cross-site Scripting issue in GitLab Flavored Markdown placeholders impacts GitLab CE/EE</p>
+	  <p>Cross-site Scripting issue in Web IDE impacts GitLab CE/EE</p>
+	  <p>Missing Authorization issue in Duo Workflows API impacts GitLab EE</p>
+	  <p>Missing Authorization issue in AI GraphQL mutation impacts GitLab EE</p>
+	  <p>Denial of Service issue in import functionality impacts GitLab CE/EE</p>
+	  <p>Insufficient Access Control Granularity issue in GraphQL runnerUpdate mutation impacts GitLab CE/EE</p>
+	  <p>Information Disclosure issue in Mermaid diagram rendering impacts GitLab CE/EE</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <cvename>CVE-2025-9222</cvename>
+      <cvename>CVE-2025-13761</cvename>
+      <cvename>CVE-2025-13772</cvename>
+      <cvename>CVE-2025-13781</cvename>
+      <cvename>CVE-2025-10569</cvename>
+      <cvename>CVE-2025-11246</cvename>
+      <cvename>CVE-2025-3950</cvename>
+      <url>https://about.gitlab.com/releases/2026/01/07/patch-release-gitlab-18-7-1-released/</url>
+    </references>
+    <dates>
+      <discovery>2026-01-07</discovery>
+      <entry>2026-01-11</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="d822839e-ee4f-11f0-b53e-0897988a1c07">
+    <topic>mail/mailpit -- Cross-Site WebSocket Hijacking</topic>
+    <affects>
+<package>
+<name>mailpit</name>
+<range><lt>1.28.2</lt></range>
+</package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>Mailpit author reports:</p>
+	<blockquote cite="https://github.com/axllent/mailpit/security/advisories/GHSA-524m-q5m7-79mm">
+	  <p>The Mailpit WebSocket server is configured to accept
+	  connections from any origin. This lack of Origin header
+	  validation introduces a Cross-Site WebSocket Hijacking
+	  (CSWSH) vulnerability.</p>
+
+	  <p>An attacker can host a malicious website that, when
+	  visited by a developer running Mailpit locally, establishes
+	  a WebSocket connection to the victim's Mailpit instance
+	  (default ws://localhost:8025). This allows the attacker
+	  to intercept sensitive data such as email contents,
+	  headers, and server statistics in real-time.</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <cvename>CVE-2026-22689</cvename>
+      <url>https://github.com/axllent/mailpit/security/advisories/GHSA-524m-q5m7-79mm</url>
+    </references>
+    <dates>
+      <discovery>2026-01-10</discovery>
+      <entry>2026-01-10</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="79c3c751-ee20-11f0-b17e-50ebf6bdf8e9">
+    <topic>phpmyfaq -- multiple vulnerabilities</topic>
+    <affects>
+      <package>
+	<name>phpmyfaq-php82</name>
+	<name>phpmyfaq-php83</name>
+	<name>phpmyfaq-php84</name>
+	<name>phpmyfaq-php85</name>
+	<range><lt>4.0.16</lt></range>
+      </package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>phpMyFAQ team reports:</p>
+	<blockquote cite="https://www.phpmyfaq.de/security/advisory-2025-12-29/">
+	  <p>Stored cross-site scripting (XSS) and unauthenticated config backup
+	    download vulnerability</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <url>https://www.phpmyfaq.de/security/advisory-2025-12-29/</url>
+    </references>
+    <dates>
+      <discovery>2025-12-29</discovery>
+      <entry>2026-01-10</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="8826fb1c-ebd8-11f0-a15a-a8a1599412c6">
+    <topic>chromium -- multiple security fixes</topic>
+    <affects>
+      <package>
+       <name>chromium</name>
+       <range><lt>143.0.7499.192</lt></range>
+      </package>
+      <package>
+       <name>ungoogled-chromium</name>
+       <range><lt>143.0.7499.192</lt></range>
+      </package>
+    </affects>
+    <description>
+      <body xmlns="http://www.w3.org/1999/xhtml">
+       <p>Chrome Releases reports:</p>
+       <blockquote cite="https://chromereleases.googleblog.com/2026/01/stable-channel-update-for-desktop.html">
+	 <p>This update includes 1 security fix:</p>
+	 <ul>
+	    <li>[463155954] High CVE-2026-0628: Insufficient policy enforcement in WebView tag. Reported by Gal Weizman on 2025-11-23</li>
+	 </ul>
+       </blockquote>
+      </body>
+    </description>
+    <references>
+      <cvename>CVE-2026-0628</cvename>
+      <url>https://chromereleases.googleblog.com/2026/01/stable-channel-update-for-desktop.html</url>
+    </references>
+    <dates>
+      <discovery>2026-01-06</discovery>
+      <entry>2026-01-07</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="583b63f5-ebae-11f0-939f-47e3830276dd">
+	  <topic>security/libsodium -- crypto_core_ed25519_is_valid_point mishandles checks for whether an elliptic curve point is valid</topic>
+    <affects>
+<package>
+<name>libsodium</name>
+<range><lt>1.0.21</lt></range>
+</package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>Libsodium maintainer reports:</p>
+	<blockquote cite="https://00f.net/2025/12/30/libsodium-vulnerability/">
+	  <p>The function crypto_core_ed25519_is_valid_point(), a low-level function
+	  used to check if a given elliptic curve point is valid, was supposed to
+	  reject points that aren't in the main cryptographic group,
+	  but some points were slipping through.</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <cvename>CVE-2025-69277</cvename>
+      <url>https://00f.net/2025/12/30/libsodium-vulnerability/</url>
+    </references>
+    <dates>
+      <discovery>2025-12-30</discovery>
+      <entry>2026-01-07</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="df33c83b-eb4f-11f0-a46f-0897988a1c07">
+    <topic>mail/mailpit -- Server-Side Request Forgery</topic>
+    <affects>
+<package>
+<name>mailpit</name>
+<range><lt>1.28.1</lt></range>
+</package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>Mailpit author reports:</p>
+	<blockquote cite="https://github.com/axllent/mailpit/security/advisories/GHSA-8v65-47jx-7mfr">
+	  <p>A Server-Side Request Forgery (SSRF) vulnerability
+	  exists in Mailpit's /proxy endpoint that allows attackers
+	  to make requests to internal network resources.</p>
+	  <p>The /proxy endpoint allows requests to internal network
+	  resources. While it validates http:// and https:// schemes,
+	  it does not block internal IP addresses, allowing attackers
+	  to access internal services and APIs.</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <cvename>CVE-2026-21859</cvename>
+      <url>https://github.com/axllent/mailpit/security/advisories/GHSA-8v65-47jx-7mfr</url>
+    </references>
+    <dates>
+      <discovery>2026-01-06</discovery>
+      <entry>2026-01-06</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="e2cd20fd-eb10-11f0-a1c0-0050569f0b83">
+    <topic>net-mgmt/net-snmp -- Remote Code Execution (snmptrapd)</topic>
+    <affects>
+<package>
+<name>net-snmp</name>
+<range><lt>5.9.5</lt></range>
+</package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>net-snmp development team reports:</p>
+	<blockquote cite="https://github.com/net-snmp/net-snmp/security/advisories/GHSA-4389-rwqf-q9gq">
+	  <p>A specially crafted packet to an net-snmp snmptrapd daemon can cause a buffer overflow and
+	   the daemon to crash.</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <cvename>CVE-2025-68615</cvename>
+      <url>https://github.com/net-snmp/net-snmp/security/advisories/GHSA-4389-rwqf-q9gq</url>
+    </references>
+    <dates>
+      <discovery>2025-12-23</discovery>
+      <entry>2026-01-06</entry>
+    </dates>
+  </vuln>
+
+  <vuln vid="500cc49c-e93b-11f0-b8d8-4ccc6adda413">
+    <topic>gstreamer1-plugins-bad -- Out-of-bounds reads in MIDI parser</topic>
+    <affects>
+<package>
+<name>gstreamer1-plugins-bad</name>
+<range><lt>1.26.10</lt></range>
+</package>
+    </affects>
+    <description>
+	<body xmlns="http://www.w3.org/1999/xhtml">
+	<p>The GStreamer Security Center reports:</p>
+	<blockquote cite="https://gstreamer.freedesktop.org/security/sa-2025-0009.html">
+	  <p>Multiple out-of-bounds reads in the MIDI parser that can cause
+	  crashes for certain input files.</p>
+	</blockquote>
+	</body>
+    </description>
+    <references>
+      <cvename>CVE-2025-67326</cvename>
+      <cvename>CVE-2025-67327</cvename>
+      <url>https://gstreamer.freedesktop.org/security/sa-2025-0009.html</url>
+    </references>
+    <dates>
+      <discovery>2025-12-27</discovery>
+      <entry>2026-01-04</entry>
+    </dates>
+  </vuln>

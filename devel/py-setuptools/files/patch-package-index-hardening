@@ -1,0 +1,153 @@
+--- setuptools/package_index.py.orig
++++ setuptools/package_index.py
+@@ -3,6 +3,7 @@
+ import os
+ import re
+ import io
++import subprocess
+ import shutil
+ import socket
+ import base64
+@@ -197,7 +198,7 @@
+     return wrapper
+ 
+ 
+-REL = re.compile(r"""<([^>]*\srel\s*=\s*['"]?([^'">]+)[^>]*)>""", re.I)
++REL = re.compile(r"""<([^>]*\srel\s{0,10}=\s{0,10}['"]?([^'" >]+)[^>]*)>""", re.I)
+ # this line is here to fix emacs' cruddy broken syntax highlighting
+ 
+ 
+@@ -798,6 +799,10 @@
+             name = name[:-4]  # strip the extra .zip before download
+ 
+         filename = os.path.join(tmpdir, name)
++
++        # Ensure URL-derived absolute paths cannot escape the download root.
++        if not filename.startswith(str(tmpdir)):
++            raise ValueError("Invalid filename %s" % filename)
+ 
+         # Download the file
+         #
+@@ -839,26 +844,9 @@
+         raise DistutilsError("Unexpected HTML page found at " + url)
+ 
+     def _download_svn(self, url, filename):
+-        warnings.warn("SVN download support is deprecated", UserWarning)
+-        url = url.split('#', 1)[0]  # remove any fragment for svn's sake
+-        creds = ''
+-        if url.lower().startswith('svn:') and '@' in url:
+-            scheme, netloc, path, p, q, f = urllib.parse.urlparse(url)
+-            if not netloc and path.startswith('//') and '/' in path[2:]:
+-                netloc, path = path[2:].split('/', 1)
+-                auth, host = _splituser(netloc)
+-                if auth:
+-                    if ':' in auth:
+-                        user, pw = auth.split(':', 1)
+-                        creds = " --username=%s --password=%s" % (user, pw)
+-                    else:
+-                        creds = " --username=" + auth
+-                    netloc = host
+-                    parts = scheme, netloc, url, p, q, f
+-                    url = urllib.parse.urlunparse(parts)
+-        self.info("Doing subversion checkout from %s to %s", url, filename)
+-        os.system("svn checkout%s -q %s %s" % (creds, url, filename))
+-        return filename
++        raise DistutilsError(
++            "Invalid config, SVN download is not supported: %s" % url
++        )
+ 
+     @staticmethod
+     def _vcs_split_rev_from_url(url, pop_prefix=False):
+@@ -883,14 +871,13 @@
+         url, rev = self._vcs_split_rev_from_url(url, pop_prefix=True)
+ 
+         self.info("Doing git clone from %s to %s", url, filename)
+-        os.system("git clone --quiet %s %s" % (url, filename))
++        subprocess.check_call(['git', 'clone', '--quiet', url, filename])
+ 
+         if rev is not None:
+             self.info("Checking out %s", rev)
+-            os.system("git -C %s checkout --quiet %s" % (
+-                filename,
+-                rev,
+-            ))
++            subprocess.check_call(
++                ['git', '-C', filename, 'checkout', '--quiet', rev]
++            )
+ 
+         return filename
+ 
+@@ -899,14 +886,13 @@
+         url, rev = self._vcs_split_rev_from_url(url, pop_prefix=True)
+ 
+         self.info("Doing hg clone from %s to %s", url, filename)
+-        os.system("hg clone --quiet %s %s" % (url, filename))
++        subprocess.check_call(['hg', 'clone', '--quiet', url, filename])
+ 
+         if rev is not None:
+             self.info("Updating to %s", rev)
+-            os.system("hg --cwd %s up -C -r %s -q" % (
+-                filename,
+-                rev,
+-            ))
++            subprocess.check_call(
++                ['hg', '--cwd', filename, 'up', '-C', '-r', rev, '-q']
++            )
+ 
+         return filename
+ 
+--- setuptools/command/egg_info.py.orig
++++ setuptools/command/egg_info.py
+@@ -34,8 +34,21 @@
+ from setuptools.extern import packaging
+ from setuptools.extern.jaraco.text import yield_lines
+ from setuptools import SetuptoolsDeprecationWarning
++
++
++class _NormalizedMatcher:
++    """Match paths after canonical Unicode normalization."""
++
++    def __init__(self, pattern):
++        self._pattern = pattern
++
++    def match(self, path):
++        return self._pattern.match(unicode_utils.normalize(path))
+ 
++    def search(self, path):
++        return self._pattern.search(unicode_utils.normalize(path))
+ 
++
+ def translate_pattern(glob):  # noqa: C901  # is too complex (14)  # FIXME
+     """
+     Translate a file path glob like '*.txt' in to a regular expression.
+@@ -44,6 +57,7 @@
+     directories.
+     """
+     pat = ''
++    glob = unicode_utils.normalize(glob)
+ 
+     # This will split on '/' within [character classes]. This is deliberate.
+     chunks = glob.split(os.path.sep)
+@@ -116,7 +130,7 @@
+             pat += sep
+ 
+     pat += r'\Z'
+-    return re.compile(pat, flags=re.MULTILINE | re.DOTALL)
++    return _NormalizedMatcher(re.compile(pat, flags=re.MULTILINE | re.DOTALL))
+ 
+ 
+ class InfoCommon:
+--- setuptools/unicode_utils.py.orig
++++ setuptools/unicode_utils.py
+@@ -15,6 +15,11 @@
+     return path
+ 
+ 
++def normalize(text):
++    """Return text in NFC form for canonical file-name matching."""
++    return unicodedata.normalize('NFC', text) if isinstance(text, str) else text
++
++
+ def filesys_decode(path):
+     """
+     Ensure that the given path is decoded,

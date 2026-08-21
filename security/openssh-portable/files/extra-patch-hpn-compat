@@ -1,0 +1,46 @@
+------------------------------------------------------------------------
+r294563 | des | 2016-01-22 05:13:46 -0800 (Fri, 22 Jan 2016) | 3 lines
+Changed paths:
+   M /head/crypto/openssh/servconf.c
+
+Instead of removing the NoneEnabled option, mark it as unsupported.
+(should have done this in r291198, but didn't think of it until now)
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+r294564 | des | 2016-01-22 06:22:11 -0800 (Fri, 22 Jan 2016) | 2 lines
+Changed paths:
+   M /head/crypto/openssh/readconf.c
+
+r294563 was incomplete; re-add the client-side options as well.
+
+------------------------------------------------------------------------
+
+--- readconf.c.orig	2025-10-05 19:25:16.000000000 -0700
++++ readconf.c	2025-10-06 08:47:03.024775000 -0700
+@@ -328,6 +328,12 @@ static struct {
+ 	{ "versionaddendum", oVersionAddendum },
+ 	{ "refuseconnection", oRefuseConnection },
+ 	{ "warnweakcrypto", oWarnWeakCrypto },
++	{ "hpndisabled", oDeprecated },
++	{ "hpnbuffersize", oDeprecated },
++	{ "tcprcvbufpoll", oDeprecated },
++	{ "tcprcvbuf", oDeprecated },
++	{ "noneenabled", oUnsupported },
++	{ "noneswitch", oUnsupported },
+ 
+ 	{ NULL, oBadOption }
+ };
+--- servconf.h.orig	2026-07-06 00:57:12.000000000 -0700
++++ servconf.h	2026-07-06 13:38:43.139752000 -0700
+@@ -251,6 +251,10 @@ SSHCONF_DEPRECATE(AFSTokenPassing, SSHCFG_GLOBAL, SSHC
+ SSHCONF_DEPRECATE(UsePrivilegeSeparation, SSHCFG_GLOBAL, SSHCONF_DEPRECATED) \
+ SSHCONF_DEPRECATE(KerberosTgtPassing, SSHCFG_GLOBAL, SSHCONF_DEPRECATED) \
+ SSHCONF_DEPRECATE(AFSTokenPassing, SSHCFG_GLOBAL, SSHCONF_DEPRECATED) \
++SSHCONF_DEPRECATE(NoneEnabled, SSHCFG_ALL, SSHCONF_DEPRECATED) \
++SSHCONF_DEPRECATE(HPNDisabled, SSHCFG_ALL, SSHCONF_DEPRECATED) \
++SSHCONF_DEPRECATE(HPNBufferSize, SSHCFG_ALL, SSHCONF_DEPRECATED) \
++SSHCONF_DEPRECATE(TCPRcvBufPoll, SSHCFG_ALL, SSHCONF_DEPRECATED) \
+ SSHCONF_DEPRECATE(Protocol, SSHCFG_GLOBAL, SSHCONF_IGNORE)
+ 
+ #define SSHD_CONFIG_ENTRIES_ALIASES \
