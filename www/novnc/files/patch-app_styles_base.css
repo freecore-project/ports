@@ -1,0 +1,40 @@
+Backport of upstream noVNC f0a39cd357 ("Fix appearance of extra key buttons",
+novnc/noVNC#1946, the first commit after v1.6.0). The .noVNC_panel input max-width
+rule also matched the six <input type=image> keys in the shrink-to-fit extra keys
+panel, collapsing them to 0x0 so only the 10px button ring rendered. The rule was
+only ever meant for the settings panel; scope it there.
+
+--- app/styles/base.css.orig	2025-03-12 00:00:00.000000000 +0000
++++ app/styles/base.css
+@@ -473,15 +473,6 @@
+ 
+ .noVNC_panel li {
+     margin: 5px;
+-}
+-
+-.noVNC_panel button,
+-.noVNC_panel select,
+-.noVNC_panel textarea,
+-.noVNC_panel input:not([type=checkbox]):not([type=radio]) {
+-    margin-left: 6px;
+-    /* Prevent inputs in panels from being too wide */
+-    max-width: calc(100% - 6px - var(--input-xpadding) * 2);
+ }
+ 
+ .noVNC_panel .noVNC_heading {
+@@ -621,6 +612,15 @@
+     list-style: none;
+     padding: 0px;
+ }
++#noVNC_settings button,
++#noVNC_settings select,
++#noVNC_settings textarea,
++#noVNC_settings input:not([type=checkbox]):not([type=radio]) {
++    margin-left: 6px;
++    /* Prevent inputs in panels from being too wide */
++    max-width: calc(100% - 6px - var(--input-xpadding) * 2);
++}
++
+ #noVNC_setting_port {
+     width: 80px;
+ }
