@@ -29,7 +29,7 @@ SAMBA4_PORTNAME=		${SAMBA4_BASENAME}4
 # TrueNAS builds from the bundled /usr/nas_source/samba checkout.  Keep the
 # package version aligned with that checkout's VERSION file, not the upstream
 # distfile version from the FreeBSD ports tree this port was forked from.
-SAMBA4_VERSION=			4.24.7
+SAMBA4_VERSION=			4.24.8
 SAMBA4_DISTNAME=		${SAMBA4_BASENAME}-${SAMBA4_VERSION:S|.p|pre|:S|.r|rc|:S|.t|tp|:S|.a|alpha|}
 
 # TrueNAS fork: build from local source tree
