@@ -1,0 +1,9 @@
+--- pyproject.toml.orig	2026-05-09 18:18:02 UTC
++++ pyproject.toml
+@@ -7,2 +7 @@
+-license = "LGPL-2.1"
+-license-files = ["LICENSE"]
++license = { text = "LGPL-2.1" }
+@@ -44 +43 @@
+-requires = ["setuptools >= 77"]
++requires = ["setuptools >= 63.1"]

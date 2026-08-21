@@ -1,0 +1,27 @@
+--- rust/stracciatella/Cargo.toml.orig	2023-11-24 17:51:52.279301000 -0700
++++ rust/stracciatella/Cargo.toml	2023-11-24 17:52:13.332719000 -0700
+@@ -34,24 +34,6 @@
+ slug = "0.1.4"
+ simplelog = "0.12"
+ 
+-[target.'cfg(windows)'.dependencies.winapi]
+-# @see stracciatella::fs::free_space
+-version = "0.3"
+-features = ["std", "fileapi"]
+-
+-[target.'cfg(target_os = "android")'.dependencies.send_wrapper]
+-version = "0.6"
+-[target.'cfg(target_os = "android")'.dependencies.lazy_static]
+-version = "1.4"
+-[target.'cfg(target_os = "android")'.dependencies.jni]
+-version = "0.19"
+-[target.'cfg(target_os = "android")'.dependencies.jni-sys]
+-version = "0.3"
+-[target.'cfg(target_os = "android")'.dependencies.ndk]
+-version = "0.7"
+-[target.'cfg(target_os = "android")'.dependencies.ndk-sys]
+-version = "0.4"
+-
+ [build-dependencies]
+ serde = "1.0"
+ serde_json = "1.0"
